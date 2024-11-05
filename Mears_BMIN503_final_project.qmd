@@ -16,31 +16,33 @@ Use this template to complete your project throughout the course. Your Final Pro
 
 Give a brief a description of your project and its goal(s), what data you are using to complete it, and what two faculty/staff in different fields you have spoken to about your project with a brief summary of what you learned from each person. Include a link to your final project GitHub repository.
 
+The goal of my final project is to determine how the COVID-19 pandemic and the surge in hospital visits, changes in cleaning/hygiene, and people staying at home affected the incidence of hospital-associated infections. I identified the 2020 data set from the CDC National Hospital Care Survey (NHCS) which contains 132,694 inpatients and 388,753 emergency department visits. It contains information including patient age, sex, the month they were discharged, and their diagnoses. I will use this data to determine how the incidence of hospital-associated infections changed month-to-month in 2020 and whether there are correlations with other parameters (e.g. COVID-19 diagnosis).
+
+I spoke with Dr. Joseph Zackular (Assistant Professor of Pathology and Laboratory Medicine at CHOP) who is a bacteriologist and an expert on C. difficile, the most common hospital-acquired infection. He suggested I stratify the dataset based on sex and age as demographics that might affect hospital infections. He suggested I look at bacterial pneumonia as a positive control as it is commonly associated with COVID co-infection.
+
+I also spoke with Dr. Kyle Bittinger (Bioinformatics Laboratory Director, CHOP Microbiome Center) who generously offered to help with the code where needed.
+
+[Final Project Github Repo](https://github.com/kevinmears/BMIN503_Final_Project)
+
 ## Introduction {#sec-introduction}
 
 Describe the problem addressed, its significance, and some background to motivate the problem. This should extend what is in the @sec-overview.
 
--   Hospital-acquired infections (HAI) are infections acquired after admission (usually 48 hours after admission) and include catheter-associated urinary tract infections, central line-associated blood stream infections, surgical site infections, ventilator-associated pneumonia, hospital-acquired pneumonia, and Clostridioides difficile infections.
+Explain why your problem is interdisciplinary, what fields can contribute to its understanding, and incorporate background related to what you learned from meeting with faculty/staff.
 
--   The risk of HAIs depend on many factors, including the facility's disinfection and infection prevention practices, the patient's immune status, and the prevalence of the pathogens within the community, length of stay in the hospital, comorbitities, ventilator support, use of invasive procedures.
+Hospital-acquired infections (HAI) are infections acquired after hospital admission. It includes catheter-associated urinary tract infections, central line-associated blood stream infections, surgical site infections, ventilator-associated and hospital-acquired pneumonia, and Clostridioides difficile infections. The risk of HAIs depend on many factors, including the facility's disinfection and infection prevention practices, the patient's immune status, length of stay in the hospital, co-morbitities, ventilator support, and use of invasive procedures. Receipt of antibiotics is one of the major risk factors for developing Clostridioides difficile infection and other multidrug resistant bacterial infections (e.g. Vancomycin resistant enteroccus or Methicillin resistant Staphylococcus aureus). According to the CDC, about 4% of hospitalized patients experience at least one HAI, with an estimated 648,000 cases in 2011; these are dominated by pneumonia, surgical site infections, gastrointestinal infections, UTIs, and bloodstream infections. Clostidioides difficile infection is the most common cause of hospital acquired infections and can cause severe, potentially life-threatening colitis. Common causes of hospital-associated and ventilator-associated pneumonia are Staphylococcus aureus, Pseudomonas aeruginosa, E. coli, and Klebsiella penumoniae. Common causes of catheter-associated UTIs are Enterococcus, Staphylcoccus aureus, Pseudomonas, Proteus, Klebsiella, and Candida. Common causes of surgical site infections include Staphylococcus aureus, other Staphylococcus, Enterococcus, E. coli, Pseudomonas aeruginosa, Enterobacter, and Klebsiella.
 
--   Receipt of antibiotics is one of the major risk factors for developing Clostridioides difficile infection and other multidrug resistant bacterial infections (e.g. Vancomycin resistant enteroccus or Methicillin resistant Staphylococcus aureus).
+The COVID-19 pandemic led to a surge in hospital visits, overwhelming our healthcare system and led to over a million deaths. Coincidently, disinfection practices intensified in public facilities including hospitals. Many causes of hospital-associated infections, including C. difficile, MRSA, VRE, norovirus are difficult to disinfect using traditional cleaning methods. The present study aims to determine how the COVID-19 pandemic affected the incidence of hospital-associated infections in 2020.
 
--   Clostidioides difficile infection is the most common cause of hospital acquired infections and can cause severe, potentially life-threatening colitis.
-
--   Common causes of hospital-associated and ventilator-associated pneymonia are Staphylococcus aureus, Pseudomonas aeruginosa, E. coli, and Klebsiella penumoniae.
-
--   Common causes of catheter-associated UTIs are Enterococcus, Staphylcoccus aureus, Pseudomonas, Proteus, Klebsiella, and Candida.
-
--   Common causes of surgical site infections include Staphylococcus aureus, other Staphylococcus, Enterococcus, E. coli, Pseudomonas aeruginosa, Enterobacter, and Klebsiella.
-
--   According to the CDC, about 4% of hospitalized patients experience at least one HAI, with an estimated 648,000 cases in 2011; these are dominated by pneumonia, surgical site infections, gastrointestinal infections, UTIs, and bloodstream infections.
+This is an interdisciplinary question because it requires an understanding of microbiology and the various factors that affect pathogenesis, epidemiology to appreciate the how disease is spread in a hospital setting, and data science for bioinformatics analysis of hospital survey data.
 
 Sources:
 
 -   Monegro et al. Hospital-Acquired Infections. (2023). In: StatPearls \[Internet\]. Treasure Island (FL): StatPearls Publishing. https://www.ncbi.nlm.nih.gov/books/NBK441857/
 
-Explain why your problem is interdisciplinary, what fields can contribute to its understanding, and incorporate background related to what you learned from meeting with faculty/staff.
+-   Dewey et al. Increased Use of Disinfectants During the COVID-19 Pandemic and Its Potential Impacts on Health and Safety. (2021) Acs Chem Health Safety.
+
+-   Dancer, S.J. Controlling Hospital-Acquired Infection: Focus on the Role of the Environment and New Technologies for Decontamination. (2014) Clin Microbiol Rev.
 
 ## Methods {#sec-methods}
 
@@ -54,13 +56,14 @@ library("cowplot")
 ```
 
 ```{r}
-# Read in NHCS 2020 IP Public Use File R Dataset
+# Read in NHCS 2020 inpatient Public Use File R Dataset
 #https://ftp.cdc.gov/pub/Health_Statistics/NCHS/Datasets/NHCS/2020/R/nhcs2020ip_r.rds
 url <- "https://ftp.cdc.gov/pub/Health_Statistics/NCHS/Datasets/NHCS/2020/R/nhcs2020ip_r.rds"
 nhcs2020ip <- read_rds(url)
 ```
 
 ```{r}
+# inpatient data set
 #pull out variables list
 var_2020 <- nhcs2020ip$variables
 
@@ -656,6 +659,199 @@ covid.entero.fit <- glm(Entero ~ COVID, data = alldiag_entero_binary, family = b
 summary(covid.entero.fit)
 
 # no association between Enterococus infection and COVID-19 diagnosis 
+```
+
+```{r}
+# Read in NHCS 2020 emergency department R Dataset
+url2 <- "https://ftp.cdc.gov/pub/Health_Statistics/NCHS/Datasets/NHCS/2020/R/nhcs2020ed_r.rds"
+nhcs2020ed <- read_rds(url2)
+```
+
+```{r}
+# emergency department dataset
+#pull out variables list
+var_2020_ed <- nhcs2020ed$variables
+
+#select useful columns
+var_2020_ed_select <- select(var_2020_ed, 1:37)
+
+#variable names 
+varnames_2020_ed <- colnames(var_2020_ed_select)
+
+#pull out primary diagnosis (DX1)
+diag1_2020_ed <- var_2020_ed_select$DX1
+
+#determine the number of primary C. diff infections (ICD-10 diagnosis code: A047)
+primaryCdiff_2020_ed <- sum(diag1_2020_ed == "A047", na.rm = TRUE)
+primaryCdiff_2020_ed
+
+#there were 151 cases of primary C.diff infection into the emergency department 
+```
+
+```{r}
+#combine all diagnosis
+alldiag_2020_ed <- var_2020_ed_select |>
+  pivot_longer(
+    cols = c(DX1:DX30), 
+    values_to = "DX"
+  )
+
+#all COVID infections
+all_covid_ed <- sum(alldiag_2020_ed =="U071", na.rm = TRUE)
+all_covid_ed
+
+#10,140 total COVID-19 diagnosis in emergency department 
+
+#all C.diff infection
+allCdiff_ed <- sum(alldiag_2020_ed == "A047", na.rm = TRUE)
+allCdiff_ed
+
+#492 total C.diff infection
+```
+
+```{r}
+#subset COVID-19 patients
+covid_patients_ed <- filter(alldiag_2020_ed, DX =="U071")
+covid_patients_ed <- covid_patients_ed |>
+  filter(!is.na(AGE)) |>
+  filter(!is.na(SEX))
+```
+
+```{r}
+#re-level age
+covid_patients_ed <- covid_patients_ed |>
+  mutate(age.simplified = cut(AGE, 
+                              breaks = c(0, 5, 10, 15, 20, seq(30, 100, by = 10)), 
+                              right = FALSE, 
+                              labels = c("less than 5", "5-9", "10-14", "15-19", "20-29", "30-39", "40-49", "50-59", "60-69", "70-79", "80-89", "90+")))
+
+count(covid_patients_ed, age.simplified)
+count(covid_patients_ed, AGE)
+count(covid_patients_ed, SEX)
+count(covid_patients_ed, DISCHARGE_MONTH)
+count(covid_patients_ed, DISCHARGE_STATUS)
+```
+
+```{r}
+#visualization
+ggplot(covid_patients_ed, aes(x = SEX)) +
+  geom_bar() +
+  labs(x = "Sex", y = "Count") +
+  ggtitle("COVID-19 cases by sex") +
+  theme_bw()
+
+ggplot(covid_patients_ed, aes(x = age.simplified)) +
+  geom_bar() +
+  labs(x = "Age", y = "Count") +
+  ggtitle("COVID-19 cases by age") +
+  theme_bw()
+
+ggplot(covid_patients_ed, aes(x = DISCHARGE_MONTH)) +
+  geom_bar() +
+  scale_x_continuous(breaks = 1:12) +
+  labs(x = "Month", y = "Count") +
+  ggtitle("COVID-19 cases by discharge month") +
+  theme_bw()
+```
+
+```{r}
+#subset bacterial pneumonia patients
+bactpneumo_patients_ed <- filter(alldiag_2020_ed, DX %in% c("J13", "J14", "J150", "J151", "J1520", "J15211", "J1529", "J153", "J154", "J155", "J1561", "J1569", "J157", "J158", "J159", "J160"))
+#J13     Pneumonia due to Streptococcus pneumoniae
+#J14     Pneumonia due to Hemophilus influenzae
+#J150    Pneumonia due to Klebsiella pneumoniae
+#J151    Pneumonia due to Pseudomonas
+#J1520   Pneumonia due to staphylococcus, unspecified
+#J15211  Pneumonia due to Methicillin susceptible Staphylococcus aureus
+#J15212  Pneumonia due to Methicillin resistant Staphylococcus aureus
+#J1529   Pneumonia due to other staphylococcus
+#J153    Pneumonia due to streptococcus, group B
+#J154    Pneumonia due to other streptococci
+#J155    Pneumonia due to Escherichia coli
+#J1561   Pneumonia due to Acinetobacter baumannii
+#J1569   Pneumonia due to other Gram-negative bacteria
+#J157    Pneumonia due to Mycoplasma pneumoniae
+#J158    Pneumonia due to other specified bacteria
+#J159    Unspecified bacterial pneumonia
+#J160    Chlamydial pneumonia
+```
+
+```{r}
+#re-level age
+bactpneumo_patients_ed <- bactpneumo_patients_ed |>
+  mutate(age.simplified = cut(AGE, 
+                              breaks = c(0, 5, 10, 15, 20, seq(30, 100, by = 10)), 
+                              right = FALSE, 
+                              labels = c("less than 5", "5-9", "10-14", "15-19", "20-29", "30-39", "40-49", "50-59", "60-69", "70-79", "80-89", "90+")))
+
+count(bactpneumo_patients_ed, age.simplified)
+count(bactpneumo_patients_ed, SEX)
+count(bactpneumo_patients_ed, DISCHARGE_MONTH)
+count(bactpneumo_patients_ed, DISCHARGE_STATUS)
+```
+
+```{r}
+#visualization
+ggplot(bactpneumo_patients_ed, aes(x = SEX)) +
+  geom_bar() +
+  labs(x = "Sex", y = "Count") +
+  ggtitle("Bacterial penumonia cases by sex") +
+  theme_bw()
+
+ggplot(bactpneumo_patients_ed, aes(x = age.simplified)) +
+  geom_bar() +
+  labs(x = "Age", y = "Count") +
+    ggtitle("Bacterial penumonia cases by age") +
+  theme_bw()
+
+ggplot(bactpneumo_patients_ed, aes(x = DISCHARGE_MONTH)) +
+  geom_bar() +
+  scale_x_continuous(breaks = 1:12) +
+  labs(x = "Month", y = "Count") +
+    ggtitle("Bacterial penumonia cases by discharge month") +
+  theme_bw()
+```
+
+```{r}
+#subset C.diff patients
+Cdiff_patients_ed <- filter(alldiag_2020_ed, DX == "A047")
+```
+
+```{r}
+#plot number of cases by demographics
+#re-level age
+Cdiff_patients_ed <- Cdiff_patients_ed |>
+  mutate(age.simplified = cut(AGE, 
+                              breaks = c(0, 5, 10, 15, 20, seq(30, 100, by = 10)), 
+                              right = FALSE, 
+                              labels = c("less than 5", "5-9", "10-14", "15-19", "20-29", "30-39", "40-49", "50-59", "60-69", "70-79", "80-89", "90+")))
+
+count(Cdiff_patients_ed, age.simplified)
+count(Cdiff_patients_ed, SEX)
+count(Cdiff_patients_ed, DISCHARGE_MONTH)
+count(Cdiff_patients_ed, DISCHARGE_STATUS)
+```
+
+```{r}
+#visualization
+ggplot(Cdiff_patients_ed, aes(x = SEX)) +
+  geom_bar() +
+  labs(x = "Sex", y = "Count") +
+  ggtitle("C. difficile infection by sex") +
+  theme_bw()
+
+ggplot(Cdiff_patients_ed, aes(x = age.simplified)) +
+  geom_bar() +
+  labs(x = "Age", y = "Count") +
+  ggtitle("C. difficile infection by age") +
+  theme_bw()
+
+ggplot(Cdiff_patients_ed, aes(x = DISCHARGE_MONTH)) +
+  geom_bar() +
+  scale_x_continuous(breaks = 1:12) +
+  labs(x = "Month", y = "Count") +
+  ggtitle("C. difficile infection by discharge month") +
+  theme_bw()
 ```
 
 ## Results {#sec-results}
