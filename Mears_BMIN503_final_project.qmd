@@ -1,5 +1,5 @@
 ---
-title: "Effects of COVID-19 pandemic on hospital-aquired infections"
+title: "Effects of COVID-19 pandemic on hospital-acquired infections"
 subtitle: "BMIN503/EPID600 Final Project"
 author: "Kevin Mears"
 format: html
@@ -18,7 +18,7 @@ Give a brief a description of your project and its goal(s), what data you are us
 
 The goal of my final project is to determine how the COVID-19 pandemic and the surge in hospital visits, changes in cleaning/hygiene, and people staying at home affected the incidence of hospital-associated infections. I identified the 2020 data set from the CDC National Hospital Care Survey (NHCS) which contains 132,694 inpatients and 388,753 emergency department visits. It contains information including patient age, sex, the month they were discharged, and their diagnoses. I will use this data to determine how the incidence of hospital-associated infections changed month-to-month in 2020 and whether there are correlations with other parameters (e.g. COVID-19 diagnosis).
 
-I spoke with Dr. Joseph Zackular (Assistant Professor of Pathology and Laboratory Medicine at CHOP) who is a bacteriologist and an expert on C. difficile, the most common hospital-acquired infection. He suggested I stratify the dataset based on sex and age as demographics that might affect hospital infections. He suggested I look at bacterial pneumonia as a positive control as it is commonly associated with COVID co-infection.
+I spoke with Dr. Joseph Zackular (Assistant Professor of Pathology and Laboratory Medicine at CHOP) who is a bacteriologist and an expert on *C. difficile*, the most common hospital-acquired infection. He suggested I stratify the dataset based on sex and age as demographics that might affect hospital infections. He suggested I look at bacterial pneumonia as a positive control as it is commonly associated with COVID co-infection.
 
 I also spoke with Dr. Kyle Bittinger (Bioinformatics Laboratory Director, CHOP Microbiome Center) who generously offered to help with the code where needed.
 
@@ -30,9 +30,9 @@ Describe the problem addressed, its significance, and some background to motivat
 
 Explain why your problem is interdisciplinary, what fields can contribute to its understanding, and incorporate background related to what you learned from meeting with faculty/staff.
 
-Hospital-acquired infections (HAI) are infections acquired after hospital admission. It includes catheter-associated urinary tract infections, central line-associated blood stream infections, surgical site infections, ventilator-associated and hospital-acquired pneumonia, and Clostridioides difficile infections. The risk of HAIs depend on many factors, including the facility's disinfection and infection prevention practices, the patient's immune status, length of stay in the hospital, co-morbitities, ventilator support, and use of invasive procedures. Receipt of antibiotics is one of the major risk factors for developing Clostridioides difficile infection and other multidrug resistant bacterial infections (e.g. Vancomycin resistant enteroccus or Methicillin resistant Staphylococcus aureus). According to the CDC, about 4% of hospitalized patients experience at least one HAI, with an estimated 648,000 cases in 2011; these are dominated by pneumonia, surgical site infections, gastrointestinal infections, UTIs, and bloodstream infections. Clostidioides difficile infection is the most common cause of hospital acquired infections and can cause severe, potentially life-threatening colitis. Common causes of hospital-associated and ventilator-associated pneumonia are Staphylococcus aureus, Pseudomonas aeruginosa, E. coli, and Klebsiella penumoniae. Common causes of catheter-associated UTIs are Enterococcus, Staphylcoccus aureus, Pseudomonas, Proteus, Klebsiella, and Candida. Common causes of surgical site infections include Staphylococcus aureus, other Staphylococcus, Enterococcus, E. coli, Pseudomonas aeruginosa, Enterobacter, and Klebsiella.
+Hospital-acquired infections (HAI) are infections acquired after hospital admission. It includes catheter-associated urinary tract infections, central line-associated blood stream infections, surgical site infections, ventilator-associated and hospital-acquired pneumonia, and *Clostridioides difficile* infections. The risk of HAIs depend on many factors, including the facility's disinfection and infection prevention practices, the patient's immune status, length of stay in the hospital, co-morbitities, ventilator support, and use of invasive procedures. Receipt of antibiotics is one of the major risk factors for developing *Clostridioides difficile* infection and other multidrug resistant bacterial infections (e.g. Vancomycin resistant *Enterococcus* or Methicillin resistant *Staphylococcus aureus*). According to the CDC, about 4% of hospitalized patients experience at least one HAI, with an estimated 648,000 cases in 2011; these are dominated by pneumonia, surgical site infections, gastrointestinal infections, UTIs, and bloodstream infections. *Clostidioides difficile* infection is the most common cause of hospital acquired infections and can cause severe, potentially life-threatening colitis. Common causes of hospital-associated and ventilator-associated pneumonia are *Staphylococcus aureus*, *Pseudomonas aeruginosa*, *E. coli*, and *Klebsiella penumoniae*. Common causes of catheter-associated UTIs are *Enterococcus*, *Staphylcoccus aureus*, *Pseudomonas*, *Proteus, Klebsiella*, and *Candida*. Common causes of surgical site infections include *Staphylococcus aureus*, other *Staphylococcus, Enterococcus, E. coli, Pseudomonas aeruginosa, Enterobacter*, and *Klebsiella*.
 
-The COVID-19 pandemic led to a surge in hospital visits, overwhelming our healthcare system and led to over a million deaths. Coincidently, disinfection practices intensified in public facilities including hospitals. Many causes of hospital-associated infections, including C. difficile, MRSA, VRE, norovirus are difficult to disinfect using traditional cleaning methods. The present study aims to determine how the COVID-19 pandemic affected the incidence of hospital-associated infections in 2020.
+The COVID-19 pandemic led to a surge in hospital visits, overwhelming our healthcare system and led to over a million deaths. Coincidently, disinfection practices intensified in public facilities including hospitals. Many causes of hospital-associated infections, including *C. difficile*, MRSA, VRE, norovirus are difficult to disinfect using traditional cleaning methods. The present study aims to determine how the COVID-19 pandemic affected the incidence of hospital-associated infections in 2020.
 
 This is an interdisciplinary question because it requires an understanding of microbiology and the various factors that affect pathogenesis, epidemiology to appreciate the how disease is spread in a hospital setting, and data science for bioinformatics analysis of hospital survey data.
 
@@ -54,6 +54,8 @@ library("tidyverse")
 library("ggplot2")
 library("cowplot")
 ```
+
+[**Inpatient data set**]{.underline}
 
 ```{r}
 # Read in NHCS 2020 inpatient Public Use File R Dataset
@@ -79,9 +81,32 @@ diag1_2020 <- var_2020_select$DX1
 #determine the number of primary C. diff infections (ICD-10 diagnosis code: A047)
 primaryCdiff_2020 <- sum(diag1_2020 == "A047", na.rm = TRUE)
 primaryCdiff_2020
-
-#there were 245 cases of primary C.diff infection
 ```
+
+-   There were 245 cases of primary *C. difficile* infection.
+
+```{r}
+var_2020_select |>
+  group_by(LOS) |>
+  summarize(count = n()) |>
+  arrange(desc(count))
+
+# count the number of patients that stayed for only 1 day
+var_2020_LOS_1 <- var_2020_select |>
+  filter(LOS == 1) |>
+  summarize(count = n()) |>
+  pull(count)
+
+ip_total_count <- var_2020_select |>
+  group_by(LOS) |>
+  summarize(count = n()) |>
+  summarize(sum(count))
+
+prop_ip_routine <- var_2020_LOS_1 / ip_total_count
+prop_ip_routine
+```
+
+-   16% of inpatient visits stayed only 1 day
 
 ```{r}
 #combine all diagnosis
@@ -95,14 +120,14 @@ alldiag_2020 <- var_2020_select |>
 all_covid <- sum(alldiag_2020 =="U071", na.rm = TRUE)
 all_covid
 
-#6452 total COVID-19 diagnosis 
-
 #all C.diff infection
 allCdiff <- sum(alldiag_2020 == "A047", na.rm = TRUE)
 allCdiff
-
-#992 total C.diff infection
 ```
+
+-   There were 6452 total COVID-19 diagnosis.
+
+-   There were 992 total *C. difficile* infection
 
 ```{r}
 #subset COVID-19 patients
@@ -119,13 +144,13 @@ covid_patients <- covid_patients |>
                               right = FALSE, 
                               labels = c("less than 5", "5-9", "10-14", "15-19", "20-29", "30-39", "40-49", "50-59", "60-69", "70-79", "80-89", "90+")))
 
-count(covid_patients, age.simplified)
-count(covid_patients, AGE)
-count(covid_patients, SEX)
-count(covid_patients, LOS) #length of stay
-count(covid_patients, LOS_30DAYS) #greater than 30 days
-count(covid_patients, DISCHARGE_MONTH)
-count(covid_patients, DISCHARGE_STATUS)
+#count(covid_patients, age.simplified)
+#count(covid_patients, AGE)
+#count(covid_patients, SEX)
+#count(covid_patients, LOS) #length of stay
+#count(covid_patients, LOS_30DAYS) #greater than 30 days
+#count(covid_patients, DISCHARGE_MONTH)
+#count(covid_patients, DISCHARGE_STATUS)
 ```
 
 ```{r}
@@ -193,12 +218,12 @@ bactpneumo_patients <- bactpneumo_patients |>
                               right = FALSE, 
                               labels = c("less than 5", "5-9", "10-14", "15-19", "20-29", "30-39", "40-49", "50-59", "60-69", "70-79", "80-89", "90+")))
 
-count(bactpneumo_patients, age.simplified)
-count(bactpneumo_patients, SEX)
-count(bactpneumo_patients, LOS) #length of stay
-count(bactpneumo_patients, LOS_30DAYS) #greater than 30 days
-count(bactpneumo_patients, DISCHARGE_MONTH)
-count(bactpneumo_patients, DISCHARGE_STATUS)
+#count(bactpneumo_patients, age.simplified)
+#count(bactpneumo_patients, SEX)
+#count(bactpneumo_patients, LOS) #length of stay
+#count(bactpneumo_patients, LOS_30DAYS) #greater than 30 days
+#count(bactpneumo_patients, DISCHARGE_MONTH)
+#count(bactpneumo_patients, DISCHARGE_STATUS)
 ```
 
 ```{r}
@@ -250,12 +275,12 @@ Cdiff_patients <- Cdiff_patients |>
                               right = FALSE, 
                               labels = c("less than 5", "5-9", "10-14", "15-19", "20-29", "30-39", "40-49", "50-59", "60-69", "70-79", "80-89", "90+")))
 
-count(Cdiff_patients, age.simplified)
-count(Cdiff_patients, SEX)
-count(Cdiff_patients, LOS) #length of stay
-count(Cdiff_patients, LOS_30DAYS) #greater than 30 days
-count(Cdiff_patients, DISCHARGE_MONTH)
-count(Cdiff_patients, DISCHARGE_STATUS)
+#count(Cdiff_patients, age.simplified)
+#count(Cdiff_patients, SEX)
+#count(Cdiff_patients, LOS) #length of stay
+#count(Cdiff_patients, LOS_30DAYS) #greater than 30 days
+#count(Cdiff_patients, DISCHARGE_MONTH)
+#count(Cdiff_patients, DISCHARGE_STATUS)
 ```
 
 ```{r}
@@ -320,12 +345,12 @@ entero_patients <- entero_patients |>
                               right = FALSE, 
                               labels = c("less than 5", "5-9", "10-14", "15-19", "20-29", "30-39", "40-49", "50-59", "60-69", "70-79", "80-89", "90+")))
 
-count(entero_patients, age.simplified)
-count(entero_patients, SEX)
-count(entero_patients, LOS) #length of stay
-count(entero_patients, LOS_30DAYS) #greater than 30 days
-count(entero_patients, DISCHARGE_MONTH)
-count(entero_patients, DISCHARGE_STATUS)
+#count(entero_patients, age.simplified)
+#count(entero_patients, SEX)
+#count(entero_patients, LOS) #length of stay
+#count(entero_patients, LOS_30DAYS) #greater than 30 days
+#count(entero_patients, DISCHARGE_MONTH)
+#count(entero_patients, DISCHARGE_STATUS)
 ```
 
 ```{r}
@@ -387,7 +412,7 @@ infcatheter_patients <- filter(alldiag_2020, DX %in% c("T80211A", "T80211D ", "T
 ventpenumo_patients <- filter(alldiag_2020, DX =="J95851")
 #J95851  Ventilator associated pneumonia
 
-# no cases in dataset
+# no ventilator-associated pneumonia cases in dataset
 ```
 
 ```{r}
@@ -410,7 +435,7 @@ surginf_patients <- filter(alldiag_2020, DX %in% c("T8141XA", "T8141XD", "T8141X
 #O8604   Sepsis following an obstetrical procedure
 #O8609   Infection of obstetric surgical wound, other surgical site
 
-# no cases in dataset
+# no surgical site infection cases in dataset
 ```
 
 ```{r}
@@ -453,9 +478,118 @@ entero_month <- entero_month + theme(plot.margin = margin(t = 20, r = 10, b = 10
 plot_grid(covid_month, bactpneumo_month, cdiff_month, entero_month, labels = c('COVID-19', 'Bacterial pneumonia', 'C. difficile', 'Enterococcus'), label_size = 12, label_x = -0.05, label_y = 1)
 ```
 
--   Bacterial pneumonia follows a similar pattern to COVID-19 as expected, but C. difficile and Enterococcus infections appears to be pretty consistent throughout the year.
+```{r}
+# determine whether discharge month is associated with COVID 
 
--   There were no cases of infections associated with surgeries, infections from catheter use, methicillin-resistant Staphylococcus aureus infections, or ventilator-associated pneumonia in the dataset.
+# filter DISCHARGE_MONTH and DX columns
+dx_month <- alldiag_2020 |>
+  select(c(DISCHARGE_MONTH, DX))
+
+# Remove NA in DX
+dx_month_narm <- dx_month[!is.na(dx_month$DX), ]
+
+# Remove NA in Discharge Month
+dx_month_narm <- dx_month_narm[!is.na(dx_month_narm$DISCHARGE_MONTH), ]
+
+# create new column with COVID infection as factor
+covid_binary_month <- dx_month_narm |>
+  mutate(COVID = ifelse(DX == "U071", 1, 0))
+
+# Fit the logistic model
+covid.month.fit <- glm(COVID ~ factor(DISCHARGE_MONTH), data = covid_binary_month, family = binomial)
+
+summary(covid.month.fit)
+```
+
+-   COVID-19 infection was positively associated with April\~December, which makes sense given the first cases began in April in the data set.
+
+```{r}
+# determine whether discharge month is associated with bacterial pneumonia  
+
+bactpneumo_code <- c("J13", "J14", "J150", "J151", "J1520", "J15211", "J1529", "J153", "J154", "J155", "J1561", "J1569", "J157", "J158", "J159", "J160")
+
+# create new column with COVID infection as factor
+bactpneumo_binary_month <- alldiag_2020 |>
+  mutate(bactpneumo = ifelse(DX %in% bactpneumo_code, 1, 0))
+
+# Fit the linear model
+bactpneumo.month.fit <- glm(bactpneumo ~ factor(DISCHARGE_MONTH), data = bactpneumo_binary_month, family = binomial)
+
+summary(bactpneumo.month.fit)
+```
+
+-   Bacterial pneumonia was negatively associated with discharge months Jan, Feb, and Jun\~Oct and positively associated with April.
+
+```{r}
+# determine whether discharge month is associated with C. difficile infection 
+
+# create new column with C. diff infection as factor
+cdiff_binary_month <- alldiag_2020 |>
+  mutate(cdiff = ifelse(DX == "A047", 1, 0))
+
+# Fit the linear model
+cdiff.month.fit <- glm(cdiff ~ factor(DISCHARGE_MONTH), data = cdiff_binary_month, family = binomial)
+
+summary(cdiff.month.fit)
+```
+
+-   Only January and August was negatively associated with *C. difficile* infection indicating that there is no seasonality in cases.
+
+```{r}
+# determine whether discharge month is associated with Enterococcus infection 
+entero_code <- c("A4181", "B952")
+
+# create new column with Enterococcus infection as factor
+entero_binary_month <- alldiag_2020 |>
+  mutate(entero = ifelse(DX %in% entero_code, 1, 0))
+
+# Fit the linear model
+entero.month.fit <- glm(entero ~ factor(DISCHARGE_MONTH), data = entero_binary_month, family = binomial)
+
+summary(entero.month.fit)
+```
+
+-   Similar to C. difficle, Enterococcus infection was only negatively associated with January and August indicating no seasonality.
+
+```{r}
+#plot age data together 
+covid_age <- ggplot(covid_patients, aes(x = age.simplified)) +
+  geom_bar() +
+  labs(x = "Age", y = "Count") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+#adjust margins for cowplot
+covid_age <- covid_age + theme(plot.margin = margin(t = 20, r = 10, b = 10, l = 10))
+
+bactpneumo_age <- ggplot(bactpneumo_patients, aes(x = age.simplified)) +
+  geom_bar() +
+  labs(x = "Age", y = "Count") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+#adjust margins for cowplot
+bactpneumo_age <- bactpneumo_age + theme(plot.margin = margin(t = 20, r = 10, b = 10, l = 10))
+
+cdiff_age <- ggplot(Cdiff_patients, aes(x = age.simplified)) +
+  geom_bar() +
+  labs(x = "Age", y = "Count") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+#adjust margins for cowplot
+cdiff_age <- cdiff_age + theme(plot.margin = margin(t = 20, r = 10, b = 10, l = 10))
+
+entero_age <- ggplot(entero_patients, aes(x = age.simplified)) +
+  geom_bar() +
+  labs(x = "Age", y = "Count") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+entero_age <- entero_age + theme(plot.margin = margin(t = 20, r = 10, b = 10, l = 10))
+
+plot_grid(covid_age, bactpneumo_age, cdiff_age, entero_age, labels = c('COVID-19', 'Bacterial pneumonia', 'C. difficile', 'Enterococcus'), label_size = 12, label_x = -0.05, label_y = 1)
+```
 
 ```{r}
 # proportions by discharge month and age
@@ -493,6 +627,12 @@ ggplot(entero_patients, aes(x = DISCHARGE_MONTH, fill = age.simplified)) +
   theme_bw()
 ```
 
+-   Bacterial pneumonia follows a similar seasonality as COVID-19 as expected, but C. difficile and Enterococcus infections appears to be pretty consistent throughout the year.
+
+-   All 4 infections predominantly affects older individuals (highest 60-69).
+
+-   There were no cases of infections associated with surgeries, infections from catheter use, methicillin-resistant Staphylococcus aureus infections, or ventilator-associated pneumonia in the dataset.
+
 ```{r}
 # Add descriptions to diagnosis
 # Read the lines from the file
@@ -528,48 +668,6 @@ alldiag_desc |>
 ```
 
 ```{r}
-# determine whether discharge month is associated with COVID 
-
-# filter DISCHARGE_MONTH and DX columns
-dx_month <- alldiag_desc |>
-  select(c(DISCHARGE_MONTH, DX))
-
-# Remove NA in DX
-dx_month_narm <- dx_month[!is.na(dx_month$DX), ]
-
-# Remove NA in Discharge Month
-dx_month_narm <- dx_month_narm[!is.na(dx_month_narm$DISCHARGE_MONTH), ]
-
-# create new column with COVID infection as factor
-covid_binary_month <- dx_month_narm |>
-  mutate(COVID = ifelse(DX == "U071", 1, 0))
-
-# Fit the logistic model
-covid.month.fit <- glm(COVID ~ DISCHARGE_MONTH, data = covid_binary_month, family = binomial)
-
-summary(covid.month.fit)
-
-# The positive coefficient for discharge_month (0.142) and P-value of less than 2e-16 indicates a significant positive association between discharge month and covid diagnosis (as expected). 
-```
-
-```{r}
-# determine whether discharge month is associated with bacterial pneumonia  
-
-bactpneumo_code <- c("J13", "J14", "J150", "J151", "J1520", "J15211", "J1529", "J153", "J154", "J155", "J1561", "J1569", "J157", "J158", "J159", "J160")
-
-# create new column with COVID infection as factor
-bactpneumo_binary_month <- dx_month_narm |>
-  mutate(bactpneumo = ifelse(DX %in% bactpneumo_code, 1, 0))
-
-# Fit the linear model
-bactpneumo.month.fit <- glm(bactpneumo ~ DISCHARGE_MONTH, data = bactpneumo_binary_month, family = binomial)
-
-summary(bactpneumo.month.fit)
-
-# The negative coefficient for discharge_month (-0.03) and P-value of less than 0.001 indicates a very significant negative association between discharge month and bacterial pneumonia. 
-```
-
-```{r}
 # determine whether primary (DX1) COVID diagnosis is associated with other hospital-associated infections
 
 alldiag_covid_binary <- var_2020 |>
@@ -601,9 +699,9 @@ ggplot(alldiag_bactpneumo_factor, aes(x = bactpneumo, fill = COVID)) +
 covid.bactpneumo.fit <- glm(bactpneumo ~ COVID, data = alldiag_bactpneumo_binary, family = binomial)
 
 summary(covid.bactpneumo.fit)
-
-# a positive coefficient (1.69) and a p-value less than 0.001 indicates that there is a very strong positive assocition between bacterial pneumonia and COVID dianosis. 
 ```
+
+-   A positive coefficient (1.69) and a p-value less than 0.001 indicates that there is a very strong positive association between bacterial pneumonia and COVID diagnosis.
 
 ```{r}
 # determine whether COVID is associated with C. difficile colitis
@@ -628,14 +726,12 @@ ggplot(alldiag_cdiff_factor, aes(x = Cdiff, fill = COVID)) +
 covid.cdiff.fit <- glm(Cdiff ~ COVID, data = alldiag_cdiff_binary, family = binomial)
 
 summary(covid.cdiff.fit)
-
-# no association between C. diff colitis and COVID-19 diagnosis 
 ```
+
+-   There is no association between *C. difficile* colitis and COVID-19 diagnosis
 
 ```{r}
 # determine whether COVID diagnosis is associated with Enterococcus infection
-
-entero_code <- c("A4181", "B952")
 
 alldiag_entero_binary <- alldiag_covid_binary |>
   mutate(Entero = ifelse(rowSums(select(alldiag_covid_binary, 21:50) == entero_code, na.rm = TRUE) > 0, 1, 0))
@@ -657,9 +753,36 @@ ggplot(alldiag_entero_factor, aes(x = Entero, fill = COVID)) +
 covid.entero.fit <- glm(Entero ~ COVID, data = alldiag_entero_binary, family = binomial)
 
 summary(covid.entero.fit)
-
-# no association between Enterococus infection and COVID-19 diagnosis 
 ```
+
+-   There is no association between Enterococus infection and COVID-19 diagnosis
+
+```{r}
+# Determine whether Age is associated with COVID-19
+
+# filter DISCHARGE_MONTH and DX columns
+dx_age <- alldiag_desc |>
+  select(c(AGE, DX))
+
+# Remove NA in DX
+dx_age_narm <- dx_age[!is.na(dx_age$DX), ]
+
+# Remove NA in Discharge Month
+dx_age_narm <- dx_age_narm[!is.na(dx_age_narm$AGE), ]
+
+# create new column with COVID infection as factor
+covid_binary_age <- dx_age_narm |>
+  mutate(COVID = ifelse(DX == "U071", 1, 0))
+
+# Fit the logistic model
+covid.age.fit <- glm(COVID ~ AGE, data = covid_binary_age, family = binomial)
+
+summary(covid.age.fit)
+```
+
+-   Age is positively associated with COVID-19 diagnosis.
+
+[**Emergency department data set**]{.underline}
 
 ```{r}
 # Read in NHCS 2020 emergency department R Dataset
@@ -684,9 +807,41 @@ diag1_2020_ed <- var_2020_ed_select$DX1
 #determine the number of primary C. diff infections (ICD-10 diagnosis code: A047)
 primaryCdiff_2020_ed <- sum(diag1_2020_ed == "A047", na.rm = TRUE)
 primaryCdiff_2020_ed
-
-#there were 151 cases of primary C.diff infection into the emergency department 
 ```
+
+-   There were 151 cases of primary C.diff infection into the emergency department
+
+```{r}
+# list primary diagnosis by count
+var_2020_ed_select |>
+  group_by(DX1) |>
+  summarize(count = n()) |>
+  arrange(desc(count))
+
+# the code doesn't match exactly, for e.g. R078 has R0781, R0782, R0789 so can't accurately add descriptions. Left as is. The highest counts are chest pain, COVID-19, respiratory infection, joint pain, abdominal pain. 
+```
+
+```{r}
+var_2020_ed_select |>
+  group_by(DISCHARGE_STATUS) |>
+  summarize(count = n()) |>
+  arrange(desc(count))
+
+ed_routine_to_home <- var_2020_ed_select |>
+  filter(DISCHARGE_STATUS == "Routine to home") |>
+  summarize(count = n()) |>
+  pull(count)
+
+ed_total_count <- var_2020_ed_select |>
+  group_by(DISCHARGE_STATUS) |>
+  summarize(count = n()) |>
+  summarize(sum(count))
+
+prop_ed_routine <- ed_routine_to_home / ed_total_count
+prop_ed_routine
+```
+
+-   81% routine to home from emergency department.
 
 ```{r}
 #combine all diagnosis
@@ -700,13 +855,26 @@ alldiag_2020_ed <- var_2020_ed_select |>
 all_covid_ed <- sum(alldiag_2020_ed =="U071", na.rm = TRUE)
 all_covid_ed
 
-#10,140 total COVID-19 diagnosis in emergency department 
-
 #all C.diff infection
 allCdiff_ed <- sum(alldiag_2020_ed == "A047", na.rm = TRUE)
 allCdiff_ed
+```
 
-#492 total C.diff infection
+-   10,140 total COVID-19 diagnosis in emergency department.
+
+-   492 total C.diff infections in emergency department.
+
+```{r}
+# Add descriptions to diagnosis (emergency room)
+alldiag_desc_ed <- left_join(alldiag_2020_ed, icd_code)
+```
+
+```{r}
+# diagnosis arranged by number of cases (emergency room)
+alldiag_desc_ed |>
+  group_by(Description) |>
+  summarize(count = n()) |>
+  arrange(desc(count))
 ```
 
 ```{r}
@@ -725,11 +893,11 @@ covid_patients_ed <- covid_patients_ed |>
                               right = FALSE, 
                               labels = c("less than 5", "5-9", "10-14", "15-19", "20-29", "30-39", "40-49", "50-59", "60-69", "70-79", "80-89", "90+")))
 
-count(covid_patients_ed, age.simplified)
-count(covid_patients_ed, AGE)
-count(covid_patients_ed, SEX)
-count(covid_patients_ed, DISCHARGE_MONTH)
-count(covid_patients_ed, DISCHARGE_STATUS)
+#count(covid_patients_ed, age.simplified)
+#count(covid_patients_ed, AGE)
+#count(covid_patients_ed, SEX)
+#count(covid_patients_ed, DISCHARGE_MONTH)
+#count(covid_patients_ed, DISCHARGE_STATUS)
 ```
 
 ```{r}
@@ -784,10 +952,10 @@ bactpneumo_patients_ed <- bactpneumo_patients_ed |>
                               right = FALSE, 
                               labels = c("less than 5", "5-9", "10-14", "15-19", "20-29", "30-39", "40-49", "50-59", "60-69", "70-79", "80-89", "90+")))
 
-count(bactpneumo_patients_ed, age.simplified)
-count(bactpneumo_patients_ed, SEX)
-count(bactpneumo_patients_ed, DISCHARGE_MONTH)
-count(bactpneumo_patients_ed, DISCHARGE_STATUS)
+#count(bactpneumo_patients_ed, age.simplified)
+#count(bactpneumo_patients_ed, SEX)
+#count(bactpneumo_patients_ed, DISCHARGE_MONTH)
+#count(bactpneumo_patients_ed, DISCHARGE_STATUS)
 ```
 
 ```{r}
@@ -826,10 +994,10 @@ Cdiff_patients_ed <- Cdiff_patients_ed |>
                               right = FALSE, 
                               labels = c("less than 5", "5-9", "10-14", "15-19", "20-29", "30-39", "40-49", "50-59", "60-69", "70-79", "80-89", "90+")))
 
-count(Cdiff_patients_ed, age.simplified)
-count(Cdiff_patients_ed, SEX)
-count(Cdiff_patients_ed, DISCHARGE_MONTH)
-count(Cdiff_patients_ed, DISCHARGE_STATUS)
+#count(Cdiff_patients_ed, age.simplified)
+#count(Cdiff_patients_ed, SEX)
+#count(Cdiff_patients_ed, DISCHARGE_MONTH)
+#count(Cdiff_patients_ed, DISCHARGE_STATUS)
 ```
 
 ```{r}
@@ -854,11 +1022,297 @@ ggplot(Cdiff_patients_ed, aes(x = DISCHARGE_MONTH)) +
   theme_bw()
 ```
 
+```{r}
+#MRSA
+mrsa_patients_ed <- filter(alldiag_2020_ed, DX %in% c("A4102", "A4902", "B9562", "J15212"))
+#A4102   Sepsis due to Methicillin resistant Staphylococcus aureus
+#A4902   Methicillin resistant Staphylococcus aureus infection, unspecified site
+#B9562   Methicillin resistant Staphylococcus aureus infection as the cause of diseases classified elsewhere
+#J15212  Pneumonia due to Methicillin resistant Staphylococcus aureus
+
+# no MRSA cases in dataset
+```
+
+```{r}
+#enterococcus
+entero_patients_ed <- filter(alldiag_2020_ed, DX %in% c("A4181", "B952"))
+#A4181   Sepsis due to Enterococcus
+#B952    Enterococcus as the cause of diseases classified elsewhere
+```
+
+```{r}
+#plot number of cases by demographics
+#re-level age
+entero_patients_ed <- entero_patients_ed |>
+  mutate(age.simplified = cut(AGE, 
+                              breaks = c(0, 5, 10, 15, 20, seq(30, 100, by = 10)), 
+                              right = FALSE, 
+                              labels = c("less than 5", "5-9", "10-14", "15-19", "20-29", "30-39", "40-49", "50-59", "60-69", "70-79", "80-89", "90+")))
+
+#count(entero_patients_ed, age.simplified)
+#count(entero_patients_ed, SEX)
+#count(entero_patients_ed, DISCHARGE_MONTH)
+#count(entero_patients_ed, DISCHARGE_STATUS)
+```
+
+```{r}
+#visualization
+ggplot(entero_patients_ed, aes(x = SEX)) +
+  geom_bar() +
+  labs(x = "Sex", y = "Count") +
+  ggtitle("Enterococcus infections by sex") +
+  theme_bw()
+
+ggplot(entero_patients_ed, aes(x = age.simplified)) +
+  geom_bar() +
+  labs(x = "Age", y = "Count") +
+  ggtitle("Enterococcus infections by age") +
+  theme_bw()
+
+ggplot(entero_patients_ed, aes(x = DISCHARGE_MONTH)) +
+  geom_bar() +
+  scale_x_continuous(breaks = 1:12) +
+  labs(x = "Month", y = "Count") +
+  ggtitle("Enterococcus infections by discharge month") +
+  theme_bw()
+```
+
+```{r}
+#infections from catheter
+infcatheter_patients_ed <- filter(alldiag_2020_ed, DX %in% c("T80211A", "T80211D ", "T80211S", "T80212A", "T80212D", "T80212S", "T80218A", "T80218D", "T80218S", "T80219A", "T80219D", "T80219S"))
+#T80211A Bloodstream infection due to central venous catheter, initial encounter
+#T80211D Bloodstream infection due to central venous catheter, subsequent encounter
+#T80211S Bloodstream infection due to central venous catheter, sequela
+#T80212A Local infection due to central venous catheter, initial encounter
+#T80212D Local infection due to central venous catheter, subsequent encounter
+#T80212S Local infection due to central venous catheter, sequela
+#T80218A Other infection due to central venous catheter, initial encounter
+#T80218D Other infection due to central venous catheter, subsequent encounter
+#T80218S Other infection due to central venous catheter, sequela
+#T80219A Unspecified infection due to central venous catheter, initial encounter
+#T80219D Unspecified infection due to central venous catheter, subsequent encounter
+#T80219S Unspecified infection due to central venous catheter, sequela
+
+# no catheter-associated infections in dataset
+```
+
+```{r}
+# surgical site infections
+surginf_patients_ed <- filter(alldiag_2020_ed, DX %in% c("T8141XA", "T8141XD", "T8141XS", "T8142XA", "T8142XD", "T8142XS", "T8143XA", "T8143XD", "T8143XS", "O8600", "O8601", "O8602", "O8603", "O8604", "08609"))
+
+#T8141XA Infection following a procedure, superficial incisional surgical site, initial encounter
+#T8141XD Infection following a procedure, superficial incisional surgical site, subsequent encounter
+#T8141XS Infection following a procedure, superficial incisional surgical site, sequela
+#T8142XA Infection following a procedure, deep incisional surgical site, initial encounter
+#T8142XD Infection following a procedure, deep incisional surgical site, subsequent encounter
+#T8142XS Infection following a procedure, deep incisional surgical site, sequela
+#T8143XA Infection following a procedure, organ and space surgical site, initial encounter
+#T8143XD Infection following a procedure, organ and space surgical site, subsequent encounter
+#T8143XS Infection following a procedure, organ and space surgical site, sequela
+#O8600   Infection of obstetric surgical wound, unspecified
+#O8601   Infection of obstetric surgical wound, superficial incisional site
+#O8602   Infection of obstetric surgical wound, deep incisional site
+#O8603   Infection of obstetric surgical wound, organ and space site
+#O8604   Sepsis following an obstetrical procedure
+#O8609   Infection of obstetric surgical wound, other surgical site
+
+# no cases in dataset
+```
+
+```{r}
+#plot month data together 
+covid_month_ed <- ggplot(covid_patients_ed, aes(x = DISCHARGE_MONTH)) +
+  geom_bar() +
+  scale_x_continuous(breaks = 1:12) +
+  labs(x = "Month", y = "Count") +
+  theme_bw()
+
+#adjust margins for cowplot
+covid_month_ed <- covid_month_ed + theme(plot.margin = margin(t = 20, r = 10, b = 10, l = 10))
+
+bactpneumo_month_ed <- ggplot(bactpneumo_patients_ed, aes(x = DISCHARGE_MONTH)) +
+  geom_bar() +
+  scale_x_continuous(breaks = 1:12) +
+  labs(x = "Month", y = "Count") +
+  theme_bw()
+
+#adjust margins for cowplot
+bactpneumo_month_ed <- bactpneumo_month_ed + theme(plot.margin = margin(t = 20, r = 10, b = 10, l = 10))
+
+cdiff_month_ed <- ggplot(Cdiff_patients_ed, aes(x = DISCHARGE_MONTH)) +
+  geom_bar() +
+  scale_x_continuous(breaks = 1:12) +
+  labs(x = "Month", y = "Count") +
+  theme_bw()
+
+#adjust margins for cowplot
+cdiff_month_ed <- cdiff_month_ed + theme(plot.margin = margin(t = 20, r = 10, b = 10, l = 10))
+
+entero_month_ed <- ggplot(entero_patients_ed, aes(x = DISCHARGE_MONTH)) +
+  geom_bar() +
+  scale_x_continuous(breaks = 1:12) +
+  labs(x = "Month", y = "Count") +
+  theme_bw()
+
+entero_month_ed <- entero_month_ed + theme(plot.margin = margin(t = 20, r = 10, b = 10, l = 10))
+
+plot_grid(covid_month_ed, bactpneumo_month_ed, cdiff_month_ed, entero_month_ed, labels = c('COVID-19', 'Bacterial pneumonia', 'C. difficile', 'Enterococcus'), label_size = 12, label_x = -0.05, label_y = 1)
+```
+
+```{r}
+# Compare inpatient and emergency room counts for each
+
+plot_grid(covid_month, covid_month_ed, labels = c('COVID-19 (inpatient)', 'COVID-19 (emergency room)'), label_size = 12, label_x = -0.05, label_y = 1)
+
+# similar trend between inpatient and emergency room (dipped in the summer, surged in the winter)
+
+plot_grid(bactpneumo_month, bactpneumo_month_ed, labels = c('Bact pneumonia (inpatient)', 'Bact pneumonia (ER)'), label_size = 12, label_x = -0.05, label_y = 1)
+
+# similar trend to covid; no difference between inpatient and ER
+
+plot_grid(cdiff_month, cdiff_month_ed, labels = c('C.diff (inpatient)', 'C.diff (emergency room)'), label_size = 12, label_x = -0.05, label_y = 1)
+
+# more seasonality in the emergency room data for C. diff
+
+plot_grid(entero_month, entero_month_ed, labels = c('Enterococcus (inpatient)', 'Enterococcus (ER)'), label_size = 12, label_x = -0.05, label_y = 1)
+
+#ER data seamingly random (surge in June); doesn't seem to coincide with COVID case
+```
+
+-   Overall, the inpatient data and emergency room data follows a similar trend by month. There may be more seasonality in the C. difficile emergency room data however, with a drop in cases between April and August.
+
 ## Results {#sec-results}
 
 Describe your results and include relevant tables, plots, and code/comments used to obtain them. You may refer to the @sec-methods as needed. End with a brief conclusion of your findings related to the question you set out to address. You can include references if you'd like, but this is not required.
 
-Conclusions
+I chose to analyze the inpatient data only, because \>80% of emergency room visitors were sent home while only 16% of inpatient cases were sent home the same day. Length of stay in the hospital is a major factor in acquiring hospital-associated infection. Overall the month-to-month trends for COVID-19 and hospital infections between inpatient and emergency room visits appeared similar.
+
+```{r}
+prop_ip_routine
+# 16% of inpatient visits stayed only 1 day 
+```
+
+```{r}
+
+prop_ed_routine
+# 81% routine to home from emergency deparment 
+```
+
+All 4 infections (COVID-19, bacterial pneumonia, *C. difficile*, *Enterococcus*) predominantly affected older populations. For all 4, the highest number of cases was between the ages of 60-69.
+
+```{r}
+plot_grid(covid_age, bactpneumo_age, cdiff_age, entero_age, labels = c('COVID-19', 'Bacterial pneumonia', 'C. difficile', 'Enterococcus'), label_size = 12, label_x = -0.05, label_y = 1)
+```
+
+As expected, there was a significant positive correlation between discharge month (which I used as a proxy for diagnosis month since that wasn't available) and COVID-19 diagnosis. COVID-19 was positively associated with April\~December, coinciding with the emergence of COVID-19 infections. It also appears that there is a seasonality to COVID-19 cases, where cases dropped in the summer months and surged in the winter.
+
+```{r}
+ggplot(covid_patients, aes(x = DISCHARGE_MONTH)) +
+  geom_bar() +
+  scale_x_continuous(breaks = 1:12) +
+  labs(x = "Month", y = "Count") +
+  ggtitle("COVID-19 cases by discharge month") +
+  theme_bw()
+```
+
+```{r}
+summary(covid.month.fit)
+```
+
+Bacterial pneumonia had a similar seasonality as COVID-19, dropping from June to October and surging in the colder months. Analysis of the association of COVID-19 infection and bacterial pneumonia diagnosis reveals a significant positive association, indicating that COVID-19 infection increases the risk of bacterial pneumonia. Interestingly, the incidence of bacterial pneumonia by age changed throughout 2020, where children under the age of 10 that made up nearly 20% of cases in January significantly decreased, likely due to changes in exposure from the COVID-19 pandemic.
+
+```{r}
+ggplot(bactpneumo_patients, aes(x = DISCHARGE_MONTH)) +
+  geom_bar() +
+  scale_x_continuous(breaks = 1:12) +
+  labs(x = "Month", y = "Count") +
+    ggtitle("Bacterial penumonia cases by discharge month") +
+  theme_bw()
+```
+
+```{r}
+summary(bactpneumo.month.fit)
+```
+
+```{r}
+# Create the plot with labeled factors
+ggplot(alldiag_bactpneumo_factor, aes(x = bactpneumo, fill = COVID)) +
+  geom_bar(position = "fill") +
+  scale_fill_manual(values = c("Negative" = "#aaaaaa", "Positive" = "#b20000")) +
+  theme_bw() +
+  labs(x = "Bacterial Pneumonia", 
+       y = "Proportion", 
+       fill = "COVID Status")
+
+summary(covid.bactpneumo.fit)
+```
+
+```{r}
+ggplot(bactpneumo_patients, aes(x = DISCHARGE_MONTH, fill = age.simplified)) +
+  geom_bar(position = "fill") + 
+  scale_fill_brewer(palette = "Spectral") +
+  scale_x_continuous(breaks = 1:12) +
+  labs(x = "Discharge Month", y = "Proportion", fill = "Age") +
+  ggtitle("Bacterial pneumonia cases") +
+  theme_bw()
+```
+
+I next performed a similar analysis for two bacterial pathogens commonly associated with hospital-associated infections outside the lungs. There was no clear seasonality with *C. difficile* infection; cases remained relatively stable throughout the year.
+
+```{r}
+ggplot(Cdiff_patients, aes(x = DISCHARGE_MONTH)) +
+  geom_bar() +
+  scale_x_continuous(breaks = 1:12) +
+  labs(x = "Month", y = "Count") +
+  ggtitle("C. difficile infection by discharge month") +
+  theme_bw()
+
+summary(cdiff.month.fit)
+```
+
+Similarly, the incidence of *Enterococcus* infection did not have a clear seasonality.
+
+```{r}
+ggplot(entero_patients, aes(x = DISCHARGE_MONTH)) +
+  geom_bar() +
+  scale_x_continuous(breaks = 1:12) +
+  labs(x = "Month", y = "Count") +
+  ggtitle("Enterococcus infections by discharge month") +
+  theme_bw()
+
+summary(entero.month.fit)
+```
+
+Furthermore, there was a lack of association between COVID-19 diagnosis and *C. difficile* or *Enterococcus* co-infection.
+
+```{r}
+# Create the plot with labeled factors
+ggplot(alldiag_cdiff_factor, aes(x = Cdiff, fill = COVID)) +
+  geom_bar(position = "fill") +
+  scale_fill_manual(values = c("Negative" = "#aaaaaa", "Positive" = "#b20000")) +
+  theme_bw() +
+  labs(x = "C. difficile infection", 
+       y = "Proportion", 
+       fill = "COVID Status")
+
+# Fit the linear model
+covid.cdiff.fit <- glm(Cdiff ~ COVID, data = alldiag_cdiff_binary, family = binomial)
+
+summary(covid.cdiff.fit)
+```
+
+```{r}
+# Create the plot with labeled factors
+ggplot(alldiag_entero_factor, aes(x = Entero, fill = COVID)) +
+  geom_bar(position = "fill") +
+  scale_fill_manual(values = c("Negative" = "#aaaaaa", "Positive" = "#b20000")) +
+  theme_bw() +
+  labs(x = "Enterococcus infection", 
+       y = "Proportion", 
+       fill = "COVID Status")
+
+summary(covid.entero.fit)
+```
 
 ## Conclusion
 
