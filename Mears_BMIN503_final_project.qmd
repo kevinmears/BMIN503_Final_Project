@@ -32,7 +32,7 @@ Explain why your problem is interdisciplinary, what fields can contribute to its
 
 Hospital-acquired infections (HAI) are infections acquired after hospital admission. It includes catheter-associated urinary tract infections, central line-associated blood stream infections, surgical site infections, ventilator-associated and hospital-acquired pneumonia, and *Clostridioides difficile* infections. The risk of HAIs depend on many factors, including the facility's disinfection and infection prevention practices, the patient's immune status, length of stay in the hospital, co-morbitities, ventilator support, and use of invasive procedures. Receipt of antibiotics is one of the major risk factors for developing *Clostridioides difficile* infection and other multidrug resistant bacterial infections (e.g. Vancomycin resistant *Enterococcus* or Methicillin resistant *Staphylococcus aureus*). According to the CDC, about 4% of hospitalized patients experience at least one HAI, with an estimated 648,000 cases in 2011; these are dominated by pneumonia, surgical site infections, gastrointestinal infections, UTIs, and bloodstream infections. *Clostidioides difficile* infection is the most common cause of hospital acquired infections and can cause severe, potentially life-threatening colitis. Common causes of hospital-associated and ventilator-associated pneumonia are *Staphylococcus aureus*, *Pseudomonas aeruginosa*, *E. coli*, and *Klebsiella penumoniae*. Common causes of catheter-associated UTIs are *Enterococcus*, *Staphylcoccus aureus*, *Pseudomonas*, *Proteus, Klebsiella*, and *Candida*. Common causes of surgical site infections include *Staphylococcus aureus*, other *Staphylococcus, Enterococcus, E. coli, Pseudomonas aeruginosa, Enterobacter*, and *Klebsiella*.
 
-The COVID-19 pandemic led to a surge in hospital visits, overwhelming our healthcare system and led to over a million deaths. Coincidently, disinfection practices intensified in public facilities including hospitals. Many causes of hospital-associated infections, including *C. difficile*, MRSA, VRE, norovirus are difficult to disinfect using traditional cleaning methods. The present study aims to determine how the COVID-19 pandemic affected the incidence of hospital-associated infections in 2020.
+The COVID-19 pandemic led to a surge in hospital visits, overwhelming our healthcare system and led to over a million deaths. Coincidentally, disinfection practices intensified in public facilities including hospitals. Many causes of hospital-associated infections, including *C. difficile*, MRSA, VRE, norovirus are difficult to disinfect using traditional cleaning methods. Additionally, antibiotics exposure increased during the pandemic. The present study aims to determine how the COVID-19 pandemic affected the incidence of hospital-associated infections in 2020.
 
 This is an interdisciplinary question because it requires an understanding of microbiology and the various factors that affect pathogenesis, epidemiology to appreciate the how disease is spread in a hospital setting, and data science for bioinformatics analysis of hospital survey data.
 
@@ -634,6 +634,116 @@ ggplot(entero_patients, aes(x = DISCHARGE_MONTH, fill = age.simplified)) +
 -   There were no cases of infections associated with surgeries, infections from catheter use, methicillin-resistant Staphylococcus aureus infections, or ventilator-associated pneumonia in the dataset.
 
 ```{r}
+# plot infection by sex together
+
+covid_sex <- ggplot(covid_patients, aes(x = SEX)) +
+  geom_bar() +
+  labs(x = "Sex", y = "Count") +
+  ggtitle("COVID-19") +
+  theme_bw()
+
+bactpneumo_sex <- ggplot(bactpneumo_patients, aes(x = SEX)) +
+  geom_bar() +
+  labs(x = "Sex", y = "Count") +
+  ggtitle("Bacterial penumonia") +
+  theme_bw()
+
+cdiff_sex <- ggplot(Cdiff_patients, aes(x = SEX)) +
+  geom_bar() +
+  labs(x = "Sex", y = "Count") +
+  ggtitle("C. difficile") +
+  theme_bw()
+
+entero_sex <- ggplot(entero_patients, aes(x = SEX)) +
+  geom_bar() +
+  labs(x = "Sex", y = "Count") +
+  ggtitle("Enterococcus") +
+  theme_bw()
+
+
+plot_grid(covid_sex, bactpneumo_sex, cdiff_sex, entero_sex, label_size = 12, label_x = -0.05, label_y = 1)
+```
+
+```{r}
+# determine whether sex is assocated with COVID-19 diagnosis
+
+# filter DISCHARGE_MONTH and DX columns
+dx_sex <- alldiag_2020 |>
+  select(c(SEX, DX))
+
+# Remove NA in DX
+dx_sex_narm <- dx_sex[!is.na(dx_sex$DX), ]
+
+# Remove NA in Sex
+dx_sex_narm <- dx_sex_narm[!is.na(dx_sex_narm$SEX), ]
+
+# create new column with COVID infection as factor
+covid_binary_sex <- dx_sex_narm |>
+  mutate(COVID = ifelse(DX == "U071", 1, 0))
+
+# Fit the logistic model
+covid.sex.fit <- glm(COVID ~ factor(SEX), data = covid_binary_sex, family = binomial)
+
+summary(covid.sex.fit)
+
+covid_sex_odds <- exp(coef(covid.sex.fit))
+covid_sex_odds
+```
+
+-   Female sex is significantly negatively associated (0.839 fold) with COVID-19 compared to males.
+
+```{r}
+# determine whether sex is assocated with bacterial pneumonia diagnosis
+
+# create new column with COVID infection as factor
+bactpneumo_binary_sex <- dx_sex_narm |>
+  mutate(bactpneumo = ifelse(DX %in% bactpneumo_code, 1, 0))
+
+# Fit the logistic model
+bactpneumo.sex.fit <- glm(bactpneumo ~ factor(SEX), data = bactpneumo_binary_sex, family = binomial)
+
+summary(bactpneumo.sex.fit)
+
+bactpneumo_sex_odds <- exp(coef(bactpneumo.sex.fit))
+bactpneumo_sex_odds
+```
+
+-   Female sex is also significantly negatively associated (0.662 fold) with bacterial pneumonia diagnosis compared to males.
+
+```{r}
+# determine whether sex is assocated with C. difficile infection 
+
+# create new column with COVID infection as factor
+cdiff_binary_sex <- dx_sex_narm |>
+  mutate(cdiff = ifelse(DX == "A047", 1, 0))
+
+# Fit the logistic model
+cdiff.sex.fit <- glm(cdiff ~ factor(SEX), data = cdiff_binary_sex, family = binomial)
+
+summary(cdiff.sex.fit)
+```
+
+-   *C. difficile* infection is not associated with a particular sex.
+
+```{r}
+# determine whether sex is assocated with Enterococcus infection 
+
+# create new column with COVID infection as factor
+entero_binary_sex <- dx_sex_narm |>
+  mutate(entero = ifelse(DX %in% entero_code, 1, 0))
+
+# Fit the logistic model
+entero.sex.fit <- glm(entero ~ factor(SEX), data = entero_binary_sex, family = binomial)
+
+summary(entero.sex.fit)
+
+entero_sex_odds <- exp(coef(entero.sex.fit))
+entero_sex_odds
+```
+
+-   Female sex is negatively associated with Enterococcus infection (0.775 fold).
+
+```{r}
 # Add descriptions to diagnosis
 # Read the lines from the file
 lines <- readLines("./2021-code-descriptions-tabular-order/icd10cm_codes_2021.txt")
@@ -1185,7 +1295,7 @@ plot_grid(entero_month, entero_month_ed, labels = c('Enterococcus (inpatient)', 
 
 Describe your results and include relevant tables, plots, and code/comments used to obtain them. You may refer to the @sec-methods as needed. End with a brief conclusion of your findings related to the question you set out to address. You can include references if you'd like, but this is not required.
 
-I chose to analyze the inpatient data only, because \>80% of emergency room visitors were sent home while only 16% of inpatient cases were sent home the same day. Length of stay in the hospital is a major factor in acquiring hospital-associated infection. Overall the month-to-month trends for COVID-19 and hospital infections between inpatient and emergency room visits appeared similar.
+I chose to include the inpatient data only, because \>80% of emergency room visitors were sent home while only 16% of inpatient cases were sent home the same day. Length of stay in the hospital is a major factor in acquiring hospital-associated infection. Overall the month-to-month trends for COVID-19 and hospital infections between inpatient and emergency room visits appeared similar.
 
 ```{r}
 prop_ip_routine
@@ -1204,6 +1314,14 @@ All 4 infections (COVID-19, bacterial pneumonia, *C. difficile*, *Enterococcus*)
 plot_grid(covid_age, bactpneumo_age, cdiff_age, entero_age, labels = c('COVID-19', 'Bacterial pneumonia', 'C. difficile', 'Enterococcus'), label_size = 12, label_x = -0.05, label_y = 1)
 ```
 
+I also found that there is a negative association between female sex and being diagnosed for COVID-19, bacterial pneumonia, and *Enterococcus* infection. This is consistent with published reports. COVID-19 infection was more prevalent in men than women in the early phases of the pandemic (Abate et al. 2020) and the severity and outcomes from COVID-19 was worse in men (Pradhan and Olsson. 2020). Men also have been reported to develop pneumonia more frequently than women (Gay et al. 2021). Studies have also shown that bloodstreamn infections with vancomycin-resistant enterococci (VRE) has a male preference (Correa-Martinez et al. 2021).
+
+The incidence of *C. difficile* meanwhile was not significantly associated with a particular sex. While published reports are mixed, some studies have shown that *C. difficile* infection encounters are more often female (Young et al. 2022), which is in line with the slightly higher case count in this data set. Together, this analysis shows that the sex-bias in bacterial pneumonia, *Enterococcus*, and *C. difficile* infection was not affected by the COVID-19 pandemic in 2020.
+
+```{r}
+plot_grid(covid_sex, bactpneumo_sex, cdiff_sex, entero_sex, label_size = 12, label_x = -0.05, label_y = 1)
+```
+
 As expected, there was a significant positive correlation between discharge month (which I used as a proxy for diagnosis month since that wasn't available) and COVID-19 diagnosis. COVID-19 was positively associated with April\~December, coinciding with the emergence of COVID-19 infections. It also appears that there is a seasonality to COVID-19 cases, where cases dropped in the summer months and surged in the winter.
 
 ```{r}
@@ -1219,7 +1337,7 @@ ggplot(covid_patients, aes(x = DISCHARGE_MONTH)) +
 summary(covid.month.fit)
 ```
 
-Bacterial pneumonia had a similar seasonality as COVID-19, dropping from June to October and surging in the colder months. Analysis of the association of COVID-19 infection and bacterial pneumonia diagnosis reveals a significant positive association, indicating that COVID-19 infection increases the risk of bacterial pneumonia. Interestingly, the incidence of bacterial pneumonia by age changed throughout 2020, where children under the age of 10 that made up nearly 20% of cases in January significantly decreased, likely due to changes in exposure from the COVID-19 pandemic.
+Bacterial pneumonia had a similar seasonality as COVID-19, dropping from June to October and surging in the colder months. Analysis of the association of COVID-19 infection and bacterial pneumonia diagnosis reveals a significant positive association, indicating that COVID-19 infection increases the risk of bacterial pneumonia. Secondary bacterial infection is a important contributor to mortality following viral infection, including COVID-19 (Morens et al. 2008, Gao et al. 2023). Interestingly, the incidence of bacterial pneumonia by age changed throughout 2020, where children under the age of 10 that made up nearly 20% of cases in January significantly decreased, likely due to changes in exposure from the COVID-19 pandemic.
 
 ```{r}
 ggplot(bactpneumo_patients, aes(x = DISCHARGE_MONTH)) +
@@ -1257,7 +1375,7 @@ ggplot(bactpneumo_patients, aes(x = DISCHARGE_MONTH, fill = age.simplified)) +
   theme_bw()
 ```
 
-I next performed a similar analysis for two bacterial pathogens commonly associated with hospital-associated infections outside the lungs. There was no clear seasonality with *C. difficile* infection; cases remained relatively stable throughout the year.
+I next performed a similar analysis for two bacterial pathogens commonly associated with hospital-associated infections outside the lungs. There was no clear seasonality with *C. difficile* infection; cases remained relatively stable throughout the year. A study that performed a single-center comparison in hospital-associated *C. difficile* infection between 2019 (pre-pandemic) and 2020 (pandemic) also found the incidence remained unchanged; however, their study found that the incidence of hospital-associated *C. difficile* infection was higher in patients with COVID-19 than in non-COVID-19 cases which they attributed to longer hospital stay and increased use of broad-spectrum antibiotics (Vazquez-Cuesta et al. 2022). The discrepancies between their study and my analysis may be reflective of the limitations of a single-center analysis. Several studies reported a lower *C. difficile* infection rate compared to pre-pandemic period (Granata et al. 2022).
 
 ```{r}
 ggplot(Cdiff_patients, aes(x = DISCHARGE_MONTH)) +
@@ -1295,9 +1413,6 @@ ggplot(alldiag_cdiff_factor, aes(x = Cdiff, fill = COVID)) +
        y = "Proportion", 
        fill = "COVID Status")
 
-# Fit the linear model
-covid.cdiff.fit <- glm(Cdiff ~ COVID, data = alldiag_cdiff_binary, family = binomial)
-
 summary(covid.cdiff.fit)
 ```
 
@@ -1317,3 +1432,31 @@ summary(covid.entero.fit)
 ## Conclusion
 
 This the conclusion. The @sec-results can be invoked here.
+
+-   No change in sex preference with COVID for bacterial pneumonia and enterococcus.
+
+-   Bacterial pneumonia had a similar seasonality as COVID-19 and was significantly associated with COVID-19 infection.
+
+-   Limitations of the study are the lack of accessibility of the pre-pandemic (2019) and post-pandemic data sets. For example, a study by the CDC found that the incidence of central-line bloodstream infections, catheter-associated UTIs, ventilator-associated infections, and MRSA bacteremia was significantly higher in 2021 than pre-pandemic levels (Lastinger et al. 2022).
+
+Sources:
+
+Pradhan and Olsson. (2020) Sex differences in severity and mortality from COVID-19: are males more vulnerable? *Biology of Sex Differences.* <https://bsd.biomedcentral.com/articles/10.1186/s13293-020-00330-7>
+
+Abate et al. (2020) Sex difference in coronavirus disease (COVID-19): a systematic review and meta-analysis. *BMJ Open.* [https://bmjopen.bmj.com/content/10/10/e040129](#0)
+
+Gay et al. (2021) Sexual Dimorphism and Gender in Infectious Diseases. *Frontiers in Immunology.* <https://www.frontiersin.org/journals/immunology/articles/10.3389/fimmu.2021.698121/full>
+
+Correa-Martinez et al. (2021) Sex differences in vancomycin-resistant enterococci bloodstream infections—a systematic review and meta-analysis. *Biology of Sex Differences.* <https://bsd.biomedcentral.com/articles/10.1186/s13293-021-00380-5>
+
+Young et al. (2022) Clostridioides difficile Infection Treatment and Outcome Disparities in a National Sample of United States Hospitals. *Antibiotics.* <https://www.mdpi.com/2079-6382/11/9/1203>
+
+Morens et al. (2008) Predominant role of bacterial pneumonia as a cause of death in pandemic influenza: implications for pandemic influenza preparedness. *J Infect Dis.*
+
+Gao et al. (2023) Machine learning links unresolving secondary pneumonia to mortality in patients with severe pneumonia, including COVID-19. *JCI.* <https://www.jci.org/articles/view/170682#B17>
+
+Vazquez-Cuesta et al. (2022) *Clostridioides difficile* infection epidemiology and clinical characteristics in COVID-19 pandemic. *Front. Med.* <https://www.frontiersin.org/journals/medicine/articles/10.3389/fmed.2022.953724/full#B4>
+
+Granata et al. (2022) The burden of *Clostridioides difficile* infection in COVID-19 patients: A systematic review and meta-analysis. *Anaerobe.* <https://www.sciencedirect.com/science/article/pii/S1075996421001670?casa_token=8a_HWG8ihJoAAAAA:mR-h9srMVlu0YMgt7sljtRPskR7M36TMpuaKKY8IlpW0tqyo507Ph1UHeMGFgVu3Xoa8oL1ebQ>
+
+Lastinger et al. (2022) Continued increases in the incidence of healthcare-associated infection (HAI) during the second year of the coronavirus disease 2019 (COVID-19) pandemic. *Infection Control & Hospital Epidemiology.* <https://www.cambridge.org/core/journals/infection-control-and-hospital-epidemiology/article/continued-increases-in-the-incidence-of-healthcareassociated-infection-hai-during-the-second-year-of-the-coronavirus-disease-2019-covid19-pandemic/6521FF7F27B97AD5B21BA4B8EA9888A4>
