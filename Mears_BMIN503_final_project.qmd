@@ -53,6 +53,7 @@ Describe the data used and general methodological approach used to address the p
 library("tidyverse")
 library("ggplot2")
 library("cowplot")
+library("forcats") # for fct_relevel
 ```
 
 [**Inpatient data set**]{.underline}
@@ -80,17 +81,9 @@ diag1_2020 <- var_2020_select$DX1
 
 #determine the number of primary C. diff infections (ICD-10 diagnosis code: A047)
 primaryCdiff_2020 <- sum(diag1_2020 == "A047", na.rm = TRUE)
-primaryCdiff_2020
 ```
 
--   There were 245 cases of primary *C. difficile* infection.
-
 ```{r}
-var_2020_select |>
-  group_by(LOS) |>
-  summarize(count = n()) |>
-  arrange(desc(count))
-
 # count the number of patients that stayed for only 1 day
 var_2020_LOS_1 <- var_2020_select |>
   filter(LOS == 1) |>
@@ -133,7 +126,8 @@ allCdiff
 #subset COVID-19 patients
 covid_patients <- filter(alldiag_2020, DX =="U071")
 covid_patients <- covid_patients |>
-  filter(!is.na(AGE))
+  filter(!is.na(AGE)) |>
+  filter(!is.na(LOS_30DAYS))
 ```
 
 ```{r}
@@ -495,13 +489,23 @@ dx_month_narm <- dx_month_narm[!is.na(dx_month_narm$DISCHARGE_MONTH), ]
 covid_binary_month <- dx_month_narm |>
   mutate(COVID = ifelse(DX == "U071", 1, 0))
 
+# month as factor
+covid_binary_month$DISCHARGE_MONTH <- factor(
+  covid_binary_month$DISCHARGE_MONTH, 
+  levels = 1:12, 
+  labels = month.name
+)
+
+# relevel to set reference month to April
+covid_binary_month$DISCHARGE_MONTH <- fct_relevel(covid_binary_month$DISCHARGE_MONTH, "April")
+
 # Fit the logistic model
-covid.month.fit <- glm(COVID ~ factor(DISCHARGE_MONTH), data = covid_binary_month, family = binomial)
+covid.month.fit <- glm(COVID ~ DISCHARGE_MONTH, data = covid_binary_month, family = binomial)
 
 summary(covid.month.fit)
 ```
 
--   COVID-19 infection was positively associated with April\~December, which makes sense given the first cases began in April in the data set.
+-   Relative to April (the first surge in COVID-19 cases), COVID-19 infection was negatively associated with May-December.
 
 ```{r}
 # determine whether discharge month is associated with bacterial pneumonia  
@@ -631,7 +635,36 @@ ggplot(entero_patients, aes(x = DISCHARGE_MONTH, fill = age.simplified)) +
 
 -   All 4 infections predominantly affects older individuals (highest 60-69).
 
+-   The proportion of kids under 10 who were diagnosed for bacterial pneumonia decreased after the first few months.
+
 -   There were no cases of infections associated with surgeries, infections from catheter use, methicillin-resistant Staphylococcus aureus infections, or ventilator-associated pneumonia in the dataset.
+
+```{r}
+# expand on bacterial pneumonia for kids under 10
+bactpneumo_under10 <- bactpneumo_patients |>
+  filter(AGE < 10)
+
+bactpneumo_under10_plot <- ggplot(bactpneumo_under10, aes(x = DISCHARGE_MONTH)) +
+  geom_bar() +
+  scale_x_continuous(breaks = 1:12) +
+  xlab("Discharge Month") +
+  ggtitle("Bacterial pneumonia cases under 10 years old") +
+  theme_bw()
+
+bactpneumo_under10_plot
+
+# determine whether discharge month is associated with bacterial pneumonia under 10
+alldiag_2020_under10 <- alldiag_2020 |>
+  filter(AGE < 10)
+
+bactpneumo_under10_binary_month <- alldiag_2020_under10 |>
+  mutate(bactpneumo = ifelse(DX %in% bactpneumo_code, 1, 0))
+
+# Fit the linear model
+bactpneumo.under10.month.fit <- glm(bactpneumo ~ factor(DISCHARGE_MONTH), data = bactpneumo_under10_binary_month, family = binomial)
+
+summary(bactpneumo.under10.month.fit)
+```
 
 ```{r}
 # plot infection by sex together
@@ -809,9 +842,19 @@ ggplot(alldiag_bactpneumo_factor, aes(x = bactpneumo, fill = COVID)) +
 covid.bactpneumo.fit <- glm(bactpneumo ~ COVID, data = alldiag_bactpneumo_binary, family = binomial)
 
 summary(covid.bactpneumo.fit)
+
+# adjust for sex
+covid.bactpneumo.sex.fit <- glm(bactpneumo ~ SEX + COVID, data = alldiag_bactpneumo_binary, family = binomial)
+
+summary(covid.bactpneumo.sex.fit)
+
+# adjust for age
+covid.bactpneumo.age.fit <- glm(bactpneumo ~ AGE + COVID, data = alldiag_bactpneumo_binary, family = binomial)
+
+summary(covid.bactpneumo.age.fit)
 ```
 
--   A positive coefficient (1.69) and a p-value less than 0.001 indicates that there is a very strong positive association between bacterial pneumonia and COVID diagnosis.
+-   A positive coefficient (1.69) and a p-value less than 0.001 indicates that there is a very strong positive association between bacterial pneumonia and COVID diagnosis, regardless of sex or age.
 
 ```{r}
 # determine whether COVID is associated with C. difficile colitis
@@ -836,9 +879,19 @@ ggplot(alldiag_cdiff_factor, aes(x = Cdiff, fill = COVID)) +
 covid.cdiff.fit <- glm(Cdiff ~ COVID, data = alldiag_cdiff_binary, family = binomial)
 
 summary(covid.cdiff.fit)
+
+# adjust for sex
+covid.cdiff.sex.fit <- glm(Cdiff ~ SEX + COVID, data = alldiag_cdiff_binary, family = binomial)
+
+summary(covid.cdiff.sex.fit)
+
+# adjust for age
+covid.cdiff.age.fit <- glm(Cdiff ~ AGE + COVID, data = alldiag_cdiff_binary, family = binomial)
+
+summary(covid.cdiff.age.fit)
 ```
 
--   There is no association between *C. difficile* colitis and COVID-19 diagnosis
+-   There is no association between *C. difficile* colitis and COVID-19 diagnosis.
 
 ```{r}
 # determine whether COVID diagnosis is associated with Enterococcus infection
@@ -863,9 +916,14 @@ ggplot(alldiag_entero_factor, aes(x = Entero, fill = COVID)) +
 covid.entero.fit <- glm(Entero ~ COVID, data = alldiag_entero_binary, family = binomial)
 
 summary(covid.entero.fit)
+
+# adjust for sex
+covid.entero.sex.fit <- glm(Entero ~ SEX + COVID, data = alldiag_entero_binary, family = binomial)
+
+summary(covid.entero.sex.fit)
 ```
 
--   There is no association between Enterococus infection and COVID-19 diagnosis
+-   There is no association between Enterococus infection and COVID-19 diagnosis.
 
 ```{r}
 # Determine whether Age is associated with COVID-19
@@ -916,10 +974,7 @@ diag1_2020_ed <- var_2020_ed_select$DX1
 
 #determine the number of primary C. diff infections (ICD-10 diagnosis code: A047)
 primaryCdiff_2020_ed <- sum(diag1_2020_ed == "A047", na.rm = TRUE)
-primaryCdiff_2020_ed
 ```
-
--   There were 151 cases of primary C.diff infection into the emergency department
 
 ```{r}
 # list primary diagnosis by count
@@ -1289,7 +1344,7 @@ plot_grid(entero_month, entero_month_ed, labels = c('Enterococcus (inpatient)', 
 #ER data seamingly random (surge in June); doesn't seem to coincide with COVID case
 ```
 
--   Overall, the inpatient data and emergency room data follows a similar trend by month. There may be more seasonality in the C. difficile emergency room data however, with a drop in cases between April and August.
+-   Overall, the inpatient data and emergency room data follows a similar trend by month. There may be more seasonality in the *C. difficile* emergency room data however, with a drop in cases between April and August.
 
 ## Results {#sec-results}
 
@@ -1322,7 +1377,7 @@ The incidence of *C. difficile* meanwhile was not significantly associated with 
 plot_grid(covid_sex, bactpneumo_sex, cdiff_sex, entero_sex, label_size = 12, label_x = -0.05, label_y = 1)
 ```
 
-As expected, there was a significant positive correlation between discharge month (which I used as a proxy for diagnosis month since that wasn't available) and COVID-19 diagnosis. COVID-19 was positively associated with April\~December, coinciding with the emergence of COVID-19 infections. It also appears that there is a seasonality to COVID-19 cases, where cases dropped in the summer months and surged in the winter.
+As expected, there was a significant positive correlation between discharge month (which I used as a proxy for diagnosis month since that wasn't available) and COVID-19 diagnosis. Relative to April, COVID-19 was negatively associated with the later months. It also appears that there is a seasonality to COVID-19 cases, where cases dropped in the summer months and surged in the winter.
 
 ```{r}
 ggplot(covid_patients, aes(x = DISCHARGE_MONTH)) +
@@ -1373,6 +1428,8 @@ ggplot(bactpneumo_patients, aes(x = DISCHARGE_MONTH, fill = age.simplified)) +
   labs(x = "Discharge Month", y = "Proportion", fill = "Age") +
   ggtitle("Bacterial pneumonia cases") +
   theme_bw()
+
+bactpneumo_under10_plot
 ```
 
 I next performed a similar analysis for two bacterial pathogens commonly associated with hospital-associated infections outside the lungs. There was no clear seasonality with *C. difficile* infection; cases remained relatively stable throughout the year. Additionally, COVID-19 infection was not associated with *C. difficile* infection. A study that performed a single-center comparison in hospital-associated *C. difficile* infection between 2019 (pre-pandemic) and 2020 (pandemic) also found the incidence remained unchanged; however, their study found that the incidence of hospital-associated *C. difficile* infection was higher in patients with COVID-19 than in non-COVID-19 cases which they attributed to longer hospital stay and increased use of broad-spectrum antibiotics (Vazquez-Cuesta et al. 2022). The discrepancies between their study and my analysis may be reflective of the limitations of a single-center analysis. Several studies reported a lower *C. difficile* infection rate compared to pre-pandemic period (Granata et al. 2022).
