@@ -10,11 +10,7 @@ embed-resources: true
 
 ------------------------------------------------------------------------
 
-Use this template to complete your project throughout the course. Your Final Project presentation will be based on the contents of this document. Replace the title/name above and text below with your own, but keep the headers. Feel free to change the theme and other display settings, although this is not required.
-
 ## Overview {#sec-overview}
-
-Give a brief a description of your project and its goal(s), what data you are using to complete it, and what two faculty/staff in different fields you have spoken to about your project with a brief summary of what you learned from each person. Include a link to your final project GitHub repository.
 
 The goal of my final project is to determine how the COVID-19 pandemic and the surge in hospital visits, changes in cleaning/hygiene, and people staying at home affected the incidence of hospital-associated infections. I identified the 2020 data set from the CDC National Hospital Care Survey (NHCS) which contains 132,694 inpatients and 388,753 emergency department visits. It contains information including patient age, sex, the month they were discharged, and their diagnoses. I will use this data to determine how the incidence of hospital-associated infections changed month-to-month in 2020 and whether there are correlations with other parameters (e.g. COVID-19 diagnosis).
 
@@ -26,15 +22,11 @@ I also spoke with Dr. Kyle Bittinger (Bioinformatics Laboratory Director, CHOP M
 
 ## Introduction {#sec-introduction}
 
-Describe the problem addressed, its significance, and some background to motivate the problem. This should extend what is in the @sec-overview.
-
-Explain why your problem is interdisciplinary, what fields can contribute to its understanding, and incorporate background related to what you learned from meeting with faculty/staff.
-
-Hospital-acquired infections (HAI) are infections acquired after hospital admission. It includes catheter-associated urinary tract infections, central line-associated blood stream infections, surgical site infections, ventilator-associated and hospital-acquired pneumonia, and *Clostridioides difficile* infections. The risk of HAIs depend on many factors, including the facility's disinfection and infection prevention practices, the patient's immune status, length of stay in the hospital, co-morbitities, ventilator support, and use of invasive procedures. Receipt of antibiotics is one of the major risk factors for developing *Clostridioides difficile* infection and other multidrug resistant bacterial infections (e.g. Vancomycin resistant *Enterococcus* or Methicillin resistant *Staphylococcus aureus*). According to the CDC, about 4% of hospitalized patients experience at least one HAI, with an estimated 648,000 cases in 2011; these are dominated by pneumonia, surgical site infections, gastrointestinal infections, UTIs, and bloodstream infections. *Clostidioides difficile* infection is the most common cause of hospital acquired infections and can cause severe, potentially life-threatening colitis. Common causes of hospital-associated and ventilator-associated pneumonia are *Staphylococcus aureus*, *Pseudomonas aeruginosa*, *E. coli*, and *Klebsiella penumoniae*. Common causes of catheter-associated UTIs are *Enterococcus*, *Staphylcoccus aureus*, *Pseudomonas*, *Proteus, Klebsiella*, and *Candida*. Common causes of surgical site infections include *Staphylococcus aureus*, other *Staphylococcus, Enterococcus, E. coli, Pseudomonas aeruginosa, Enterobacter*, and *Klebsiella*.
+Hospital-acquired infections (HAI) are infections acquired after hospital admission. It includes catheter-associated urinary tract infections, central line-associated blood stream infections, surgical site infections, ventilator-associated and hospital-acquired pneumonia, and *Clostridioides difficile* infections. The risk of HAIs depend on many factors, including the facility's disinfection and infection prevention practices, the patient's immune status, length of stay in the hospital, co-morbitities, ventilator support, and use of invasive procedures. Receipt of antibiotics is one of the major risk factors for developing *Clostridioides difficile* infection and other multi-drug resistant bacterial infections (e.g. Vancomycin resistant *Enterococcus* or Methicillin resistant *Staphylococcus aureus*). According to the CDC, about 4% of hospitalized patients experience at least one HAI, with an estimated 648,000 cases in 2011; these are dominated by pneumonia, surgical site infections, gastrointestinal infections, UTIs, and bloodstream infections. *Clostidioides difficile* infection is the most common cause of hospital acquired infections and can cause severe, potentially life-threatening colitis. Common causes of hospital-associated and ventilator-associated pneumonia are *Staphylococcus aureus*, *Pseudomonas aeruginosa*, *E. coli*, and *Klebsiella penumoniae*. Common causes of catheter-associated UTIs are *Enterococcus*, *Staphylcoccus aureus*, *Pseudomonas*, *Proteus, Klebsiella*, and *Candida*. Common causes of surgical site infections include *Staphylococcus aureus*, other *Staphylococcus, Enterococcus, E. coli, Pseudomonas aeruginosa, Enterobacter*, and *Klebsiella*.
 
 The COVID-19 pandemic led to a surge in hospital visits, overwhelming our healthcare system and led to over a million deaths. Coincidentally, disinfection practices intensified in public facilities including hospitals. Many causes of hospital-associated infections, including *C. difficile*, MRSA, VRE, norovirus are difficult to disinfect using traditional cleaning methods. Additionally, antibiotics exposure increased during the pandemic. The present study aims to determine how the COVID-19 pandemic affected the incidence of hospital-associated infections in 2020.
 
-This is an interdisciplinary question because it requires an understanding of microbiology and the various factors that affect pathogenesis, epidemiology to appreciate the how disease is spread in a hospital setting, and data science for bioinformatics analysis of hospital survey data.
+This is an interdisciplinary question because it requires an understanding of microbiology and the various factors that affect pathogenesis, epidemiology to appreciate how disease is spread in a hospital setting, and data science for bioinformatics analysis of hospital survey data.
 
 Sources:
 
@@ -46,7 +38,7 @@ Sources:
 
 ## Methods {#sec-methods}
 
-Describe the data used and general methodological approach used to address the problem described in the @sec-introduction. Subsequently, incorporate full R code necessary to retrieve and clean data, and perform analysis. Be sure to include a description of code so that others (including your future self) can understand what you are doing and why.
+I used the 2020 data set from the CDC National Hospital Care Survey (NHCS) to answer my question. I first imported the data set and determined the variables available. The useful variables in the data were the age, sex, length of stay, discharge month, and diagnosis.
 
 ```{r}
 #| label: load-packages
@@ -82,6 +74,8 @@ diag1_2020 <- var_2020_select$DX1
 #determine the number of primary C. diff infections (ICD-10 diagnosis code: A047)
 primaryCdiff_2020 <- sum(diag1_2020 == "A047", na.rm = TRUE)
 ```
+
+I next determined the proportion of patients that stayed only for 1 day.
 
 ```{r}
 # count the number of patients that stayed for only 1 day
@@ -121,6 +115,44 @@ allCdiff
 -   There were 6452 total COVID-19 diagnosis.
 
 -   There were 992 total *C. difficile* infection
+
+I assigned the description of the diagnosis (ICD-10 code description) to the data set to better understand the patients in the data set.
+
+```{r}
+# Add descriptions to diagnosis
+# Read the lines from the file
+lines <- readLines("./2021-code-descriptions-tabular-order/icd10cm_codes_2021.txt")
+
+# Split each line by 2 or more spaces
+split_lines <- strsplit(lines, "\\s{2,}")
+
+# Find the maximum number of columns
+max_length <- max(sapply(split_lines, length))
+
+# Pad shorter rows with NA
+padded_lines <- lapply(split_lines, function(x) {
+  length(x) <- max_length  # Extend the length
+  return(x)  # Returns the padded line
+})
+
+# Convert the list to a data frame
+icd_code <- do.call(rbind, lapply(padded_lines, function(x) as.data.frame(t(x), stringsAsFactors = FALSE)))
+
+# Optionally, set column names if needed
+colnames(icd_code) <- c("DX", "Description")
+
+alldiag_desc <- left_join(alldiag_2020, icd_code)
+```
+
+```{r}
+# diagnosis arranged by number of cases
+alldiag_desc |>
+  group_by(Description) |>
+  summarize(count = n()) |>
+  arrange(desc(count))
+```
+
+I next filtered patients who were diagnosed with COVID-19 and hospital-associated infections and subsequently plotted by the variables (sex, age, length of stay, discharge month).
 
 ```{r}
 #subset COVID-19 patients
@@ -432,6 +464,8 @@ surginf_patients <- filter(alldiag_2020, DX %in% c("T8141XA", "T8141XD", "T8141X
 # no surgical site infection cases in dataset
 ```
 
+-   There were no cases of infections associated with surgeries, infections from catheter use, methicillin-resistant Staphylococcus aureus infections, or ventilator-associated pneumonia in the dataset.
+
 ```{r}
 #plot month data together 
 covid_month <- ggplot(covid_patients, aes(x = DISCHARGE_MONTH)) +
@@ -471,6 +505,8 @@ entero_month <- entero_month + theme(plot.margin = margin(t = 20, r = 10, b = 10
 
 plot_grid(covid_month, bactpneumo_month, cdiff_month, entero_month, labels = c('COVID-19', 'Bacterial pneumonia', 'C. difficile', 'Enterococcus'), label_size = 12, label_x = -0.05, label_y = 1)
 ```
+
+Next, I analyzed for association between discharge month and infection.
 
 ```{r}
 # determine whether discharge month is associated with COVID 
@@ -555,6 +591,10 @@ summary(entero.month.fit)
 
 -   Similar to C. difficle, Enterococcus infection was only negatively associated with January and August indicating no seasonality.
 
+Bacterial pneumonia follows a similar seasonality as COVID-19 as expected, but C. difficile and Enterococcus infections appears to be pretty consistent throughout the year.
+
+Next, I looked at the age distribution of each infection.
+
 ```{r}
 #plot age data together 
 covid_age <- ggplot(covid_patients, aes(x = age.simplified)) +
@@ -596,6 +636,61 @@ plot_grid(covid_age, bactpneumo_age, cdiff_age, entero_age, labels = c('COVID-19
 ```
 
 ```{r}
+# Determine whether Age is associated with COVID-19
+
+# filter DISCHARGE_MONTH and DX columns
+dx_age <- alldiag_desc |>
+  select(c(AGE, DX))
+
+# Remove NA in DX
+dx_age_narm <- dx_age[!is.na(dx_age$DX), ]
+
+# Remove NA in Discharge Month
+dx_age_narm <- dx_age_narm[!is.na(dx_age_narm$AGE), ]
+
+# create new column with COVID infection as factor
+covid_binary_age <- dx_age_narm |>
+  mutate(COVID = ifelse(DX == "U071", 1, 0))
+
+# Fit the logistic model
+covid.age.fit <- glm(COVID ~ AGE, data = covid_binary_age, family = binomial)
+
+summary(covid.age.fit)
+
+# Bacterial pneumonia 
+# create new column with COVID infection as factor
+bactpneumo_binary_age <- dx_age_narm |>
+  mutate(bactpneumo = ifelse(DX %in% bactpneumo_code, 1, 0))
+
+# Fit the logistic model
+bactpneumo.age.fit <- glm(bactpneumo ~ AGE, data = bactpneumo_binary_age, family = binomial)
+
+summary(bactpneumo.age.fit)
+
+# C. difficile
+# create new column with COVID infection as factor
+cdiff_binary_age <- dx_age_narm |>
+  mutate(cdiff = ifelse(DX == "A047", 1, 0))
+
+# Fit the logistic model
+cdiff.age.fit <- glm(cdiff ~ AGE, data = cdiff_binary_age, family = binomial)
+
+summary(cdiff.age.fit)
+
+# Enterococcus
+# create new column with COVID infection as factor
+entero_binary_age <- dx_age_narm |>
+  mutate(entero = ifelse(DX %in% entero_code, 1, 0))
+
+# Fit the logistic model
+entero.age.fit <- glm(entero ~ AGE, data = entero_binary_age, family = binomial)
+
+summary(entero.age.fit)
+```
+
+-   All 4 infections predominantly affects older individuals (highest 60-69).
+
+```{r}
 # proportions by discharge month and age
 
 ggplot(covid_patients, aes(x = DISCHARGE_MONTH, fill = age.simplified)) +
@@ -631,14 +726,6 @@ ggplot(entero_patients, aes(x = DISCHARGE_MONTH, fill = age.simplified)) +
   theme_bw()
 ```
 
--   Bacterial pneumonia follows a similar seasonality as COVID-19 as expected, but C. difficile and Enterococcus infections appears to be pretty consistent throughout the year.
-
--   All 4 infections predominantly affects older individuals (highest 60-69).
-
--   The proportion of kids under 10 who were diagnosed for bacterial pneumonia decreased after the first few months.
-
--   There were no cases of infections associated with surgeries, infections from catheter use, methicillin-resistant Staphylococcus aureus infections, or ventilator-associated pneumonia in the dataset.
-
 ```{r}
 # expand on bacterial pneumonia for kids under 10
 bactpneumo_under10 <- bactpneumo_patients |>
@@ -665,6 +752,10 @@ bactpneumo.under10.month.fit <- glm(bactpneumo ~ factor(DISCHARGE_MONTH), data =
 
 summary(bactpneumo.under10.month.fit)
 ```
+
+-   The proportion of kids under 10 who were diagnosed for bacterial pneumonia decreased after the first few months.
+
+I next looked at the sex distribution of infection.
 
 ```{r}
 # plot infection by sex together
@@ -776,42 +867,10 @@ entero_sex_odds
 
 -   Female sex is negatively associated with Enterococcus infection (0.775 fold).
 
-```{r}
-# Add descriptions to diagnosis
-# Read the lines from the file
-lines <- readLines("./2021-code-descriptions-tabular-order/icd10cm_codes_2021.txt")
-
-# Split each line by 2 or more spaces
-split_lines <- strsplit(lines, "\\s{2,}")
-
-# Find the maximum number of columns
-max_length <- max(sapply(split_lines, length))
-
-# Pad shorter rows with NA
-padded_lines <- lapply(split_lines, function(x) {
-  length(x) <- max_length  # Extend the length
-  return(x)  # Returns the padded line
-})
-
-# Convert the list to a data frame
-icd_code <- do.call(rbind, lapply(padded_lines, function(x) as.data.frame(t(x), stringsAsFactors = FALSE)))
-
-# Optionally, set column names if needed
-colnames(icd_code) <- c("DX", "Description")
-
-alldiag_desc <- left_join(alldiag_2020, icd_code)
-```
+Next, I looked at the association between a COVID-19 diagnosis and hospital-associated infection.
 
 ```{r}
-# diagnosis arranged by number of cases
-alldiag_desc |>
-  group_by(Description) |>
-  summarize(count = n()) |>
-  arrange(desc(count))
-```
-
-```{r}
-# determine whether primary (DX1) COVID diagnosis is associated with other hospital-associated infections
+# determine whether COVID diagnosis is associated with other hospital-associated infections
 
 alldiag_covid_binary <- var_2020 |>
   mutate(COVID = ifelse(rowSums(select(var_2020, 21:50) == "U071", na.rm = TRUE) > 0, 1, 0))
@@ -925,32 +984,13 @@ summary(covid.entero.sex.fit)
 
 -   There is no association between Enterococus infection and COVID-19 diagnosis.
 
-```{r}
-# Determine whether Age is associated with COVID-19
-
-# filter DISCHARGE_MONTH and DX columns
-dx_age <- alldiag_desc |>
-  select(c(AGE, DX))
-
-# Remove NA in DX
-dx_age_narm <- dx_age[!is.na(dx_age$DX), ]
-
-# Remove NA in Discharge Month
-dx_age_narm <- dx_age_narm[!is.na(dx_age_narm$AGE), ]
-
-# create new column with COVID infection as factor
-covid_binary_age <- dx_age_narm |>
-  mutate(COVID = ifelse(DX == "U071", 1, 0))
-
-# Fit the logistic model
-covid.age.fit <- glm(COVID ~ AGE, data = covid_binary_age, family = binomial)
-
-summary(covid.age.fit)
-```
+<!-- -->
 
 -   Age is positively associated with COVID-19 diagnosis.
 
 [**Emergency department data set**]{.underline}
+
+I also looked at the emergency department data set. Note, I did not include this in the results section as majority of patients (\>80%) did not stay more than a day.
 
 ```{r}
 # Read in NHCS 2020 emergency department R Dataset
@@ -1348,8 +1388,6 @@ plot_grid(entero_month, entero_month_ed, labels = c('Enterococcus (inpatient)', 
 
 ## Results {#sec-results}
 
-Describe your results and include relevant tables, plots, and code/comments used to obtain them. You may refer to the @sec-methods as needed. End with a brief conclusion of your findings related to the question you set out to address. You can include references if you'd like, but this is not required.
-
 I chose to include the inpatient data only, because \>80% of emergency room visitors were sent home while only 16% of inpatient cases were sent home the same day. Length of stay in the hospital is a major factor in acquiring hospital-associated infection. Overall the month-to-month trends for COVID-19 and hospital infections between inpatient and emergency room visits appeared similar.
 
 ```{r}
@@ -1482,13 +1520,9 @@ summary(covid.entero.fit)
 
 ## Conclusion
 
-This the conclusion. The @sec-results can be invoked here.
+Overall my findings indicate that the COVID-19 pandemic did not significantly influence the incidence of two common hospital-acquired infections (*C. difficile and Enterococcus*) in the early phase of the pandemic. As expected, bacterial pneumonia which is commonly associated with respiratory viral infections had a similar seasonality as COVID-19 and was significantly associated with COVID-19 infection.
 
--   No change in sex preference with COVID for bacterial pneumonia and enterococcus.
-
--   Bacterial pneumonia had a similar seasonality as COVID-19 and was significantly associated with COVID-19 infection.
-
--   Limitations of the study are the lack of accessibility of the pre-pandemic (2019) and post-pandemic data sets. For example, a study by the CDC found that the incidence of central-line bloodstream infections, catheter-associated UTIs, ventilator-associated infections, and MRSA bacteremia was significantly higher in 2021 than pre-pandemic levels (Lastinger et al. 2022).
+This study was limited by the data set available. Ideally, I would've liked to compare the results from 2020 to pre-pandemic levels (2019) and post-pandemic data (2022-). However, these data sets were restricted and not publicly available. Another limitation of this data set was the lack of incidence of other common hospital-acquired infections (e.g. central-line bloodstream infections, catheter-associated UTIs, and MRSA). For example, a study by the CDC found that the incidence of central-line bloodstream infections, catheter-associated UTIs, ventilator-associated infections, and MRSA bacteremia was significantly higher in 2021 than pre-pandemic levels (Lastinger et al. 2022).
 
 Sources:
 
