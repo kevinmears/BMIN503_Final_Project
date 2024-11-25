@@ -1415,7 +1415,7 @@ The incidence of *C. difficile* meanwhile was not significantly associated with 
 plot_grid(covid_sex, bactpneumo_sex, cdiff_sex, entero_sex, label_size = 12, label_x = -0.05, label_y = 1)
 ```
 
-As expected, there was a significant positive correlation between discharge month (which I used as a proxy for diagnosis month since that wasn't available) and COVID-19 diagnosis. Relative to April, COVID-19 was negatively associated with the later months. It also appears that there is a seasonality to COVID-19 cases, where cases dropped in the summer months and surged in the winter.
+As expected, there was a correlation between discharge month (which I used as a proxy for diagnosis month since that wasn't available) and COVID-19 diagnosis. Relative to April, COVID-19 was negatively associated with the later months. It also appears that there is a seasonality to COVID-19 cases, where cases dropped in the summer months and surged in the winter.
 
 ```{r}
 ggplot(covid_patients, aes(x = DISCHARGE_MONTH)) +
@@ -1522,7 +1522,7 @@ summary(covid.entero.fit)
 
 Overall my findings indicate that the COVID-19 pandemic did not significantly influence the incidence of two common hospital-acquired infections (*C. difficile and Enterococcus*) in the early phase of the pandemic. As expected, bacterial pneumonia which is commonly associated with respiratory viral infections had a similar seasonality as COVID-19 and was significantly associated with COVID-19 infection.
 
-This study was limited by the data set available. Ideally, I would've liked to compare the results from 2020 to pre-pandemic levels (2019) and post-pandemic data (2022-). However, these data sets were restricted and not publicly available. Another limitation of this data set was the lack of incidence of other common hospital-acquired infections (e.g. central-line bloodstream infections, catheter-associated UTIs, and MRSA). For example, a study by the CDC found that the incidence of central-line bloodstream infections, catheter-associated UTIs, ventilator-associated infections, and MRSA bacteremia was significantly higher in 2021 than pre-pandemic levels (Lastinger et al. 2022).
+This study was limited by the data set available. Ideally, I would've liked to compare the results from 2020 to pre-pandemic levels (2019) and post-pandemic data (2022-). However, these data sets were restricted and not publicly available. Another limitation of this data set was the lack of incidence of other common hospital-acquired infections (e.g. central-line bloodstream infections, catheter-associated UTIs, and MRSA). For example, a study by the CDC found that the incidence of central-line bloodstream infections, catheter-associated UTIs, ventilator-associated infections, and MRSA bacteremia was significantly higher in 2021 than pre-pandemic levels (Lastinger et al. 2022). It would have also been nice to have geographical data as well, since certain regions were more heavily affected by the pandemic than others.
 
 Sources:
 
