@@ -45,7 +45,9 @@ I used the 2020 data set from the CDC National Hospital Care Survey (NHCS) to an
 library("tidyverse")
 library("ggplot2")
 library("cowplot")
+library("RColorBrewer")
 library("forcats") # for fct_relevel
+library("tidymodels")
 ```
 
 [**Inpatient data set**]{.underline}
@@ -468,38 +470,49 @@ surginf_patients <- filter(alldiag_2020, DX %in% c("T8141XA", "T8141XD", "T8141X
 
 ```{r}
 #plot month data together 
-covid_month <- ggplot(covid_patients, aes(x = DISCHARGE_MONTH)) +
+#drop a color for COVID to make uniform
+colors_set3 <- brewer.pal(n = 12, name = "Set3")[-1]
+
+covid_month <- ggplot(covid_patients, aes(x = DISCHARGE_MONTH, fill = factor(DISCHARGE_MONTH))) +
   geom_bar() +
+  scale_fill_manual(values = colors_set3) +
   scale_x_continuous(breaks = 1:12) +
   labs(x = "Month", y = "Count") +
-  theme_bw()
+  theme_bw() +
+  theme(legend.position = "none")
 
 #adjust margins for cowplot
 covid_month <- covid_month + theme(plot.margin = margin(t = 20, r = 10, b = 10, l = 10))
 
-bactpneumo_month <- ggplot(bactpneumo_patients, aes(x = DISCHARGE_MONTH)) +
+bactpneumo_month <- ggplot(bactpneumo_patients, aes(x = DISCHARGE_MONTH, fill = factor(DISCHARGE_MONTH))) +
   geom_bar() +
+  scale_fill_brewer(palette = "Set3") +
   scale_x_continuous(breaks = 1:12) +
   labs(x = "Month", y = "Count") +
-  theme_bw()
+  theme_bw() +
+  theme(legend.position = "none")
 
 #adjust margins for cowplot
 bactpneumo_month <- bactpneumo_month + theme(plot.margin = margin(t = 20, r = 10, b = 10, l = 10))
 
-cdiff_month <- ggplot(Cdiff_patients, aes(x = DISCHARGE_MONTH)) +
+cdiff_month <- ggplot(Cdiff_patients, aes(x = DISCHARGE_MONTH, fill = factor(DISCHARGE_MONTH))) +
   geom_bar() +
+  scale_fill_brewer(palette = "Set3") +
   scale_x_continuous(breaks = 1:12) +
   labs(x = "Month", y = "Count") +
-  theme_bw()
+  theme_bw() +
+  theme(legend.position = "none")
 
 #adjust margins for cowplot
 cdiff_month <- cdiff_month + theme(plot.margin = margin(t = 20, r = 10, b = 10, l = 10))
 
-entero_month <- ggplot(entero_patients, aes(x = DISCHARGE_MONTH)) +
+entero_month <- ggplot(entero_patients, aes(x = DISCHARGE_MONTH, fill = factor(DISCHARGE_MONTH))) +
   geom_bar() +
+  scale_fill_brewer(palette = "Set3") +
   scale_x_continuous(breaks = 1:12) +
   labs(x = "Month", y = "Count") +
-  theme_bw()
+  theme_bw() +
+  theme(legend.position = "none")
 
 entero_month <- entero_month + theme(plot.margin = margin(t = 20, r = 10, b = 10, l = 10))
 
@@ -541,7 +554,47 @@ covid.month.fit <- glm(COVID ~ DISCHARGE_MONTH, data = covid_binary_month, famil
 summary(covid.month.fit)
 ```
 
+```{r}
+# evaluate logistic regression 
+
+# set engine
+lr_cls_spec <- 
+  logistic_reg() |> 
+  set_engine("glm")
+
+covid_binary_month_factor <- covid_binary_month |>
+  mutate(DISCHARGE_MONTH = as.factor(DISCHARGE_MONTH))
+
+covid_binary_month_factor <- 
+  covid_binary_month_factor |>
+  mutate(COVID = as.factor(COVID))
+
+# fit model 
+lr_cls_fit_covid_month <- 
+  lr_cls_spec |>
+  fit(COVID ~ DISCHARGE_MONTH, data = covid_binary_month_factor)
+
+lr_cls_fit_covid_month
+
+# model predictive ability
+lr_training_pred_covid_month <- bind_cols(
+  truth = covid_binary_month_factor$COVID,
+  predict(lr_cls_fit_covid_month, covid_binary_month_factor),
+  predict(lr_cls_fit_covid_month, covid_binary_month_factor, type = "prob")
+)
+lr_training_pred_covid_month
+
+autoplot(roc_curve(lr_training_pred_covid_month, 
+                   truth, 
+                   .pred_0))
+
+roc_auc(lr_training_pred_covid_month, 
+        truth, 
+        .pred_0)
+```
+
 -   Relative to April (the first surge in COVID-19 cases), COVID-19 infection was negatively associated with May-December.
+-   The logistic regression model did okay (ROC_AUC = 0.76) at predicting COVID by month.
 
 ```{r}
 # determine whether discharge month is associated with bacterial pneumonia  
@@ -558,7 +611,41 @@ bactpneumo.month.fit <- glm(bactpneumo ~ factor(DISCHARGE_MONTH), data = bactpne
 summary(bactpneumo.month.fit)
 ```
 
+```{r}
+# evaluate the logistic regression model
+bactpneumo_binary_month_factor <- bactpneumo_binary_month |>
+  mutate(DISCHARGE_MONTH = as.factor(DISCHARGE_MONTH))
+
+bactpneumo_binary_month_factor <- 
+  bactpneumo_binary_month_factor |>
+  mutate(bactpneumo = as.factor(bactpneumo))
+
+# fit model 
+lr_cls_fit_bactpneumo_month <- 
+  lr_cls_spec |>
+  fit(bactpneumo ~ DISCHARGE_MONTH, data = bactpneumo_binary_month_factor)
+
+lr_cls_fit_bactpneumo_month
+
+# model predictive ability
+lr_training_pred_bactpneumo_month <- bind_cols(
+  truth = bactpneumo_binary_month_factor$bactpneumo,
+  predict(lr_cls_fit_bactpneumo_month, bactpneumo_binary_month_factor),
+  predict(lr_cls_fit_bactpneumo_month, bactpneumo_binary_month_factor, type = "prob")
+)
+lr_training_pred_bactpneumo_month
+
+autoplot(roc_curve(lr_training_pred_bactpneumo_month, 
+                   truth, 
+                   .pred_0))
+
+roc_auc(lr_training_pred_bactpneumo_month, 
+        truth, 
+        .pred_0)
+```
+
 -   Bacterial pneumonia was negatively associated with discharge months Jan, Feb, and Jun\~Oct and positively associated with April.
+-   The model performed poorly at predicting bacterial pneumonia by month, only slightly better than random chance (0.5).
 
 ```{r}
 # determine whether discharge month is associated with C. difficile infection 
@@ -573,7 +660,41 @@ cdiff.month.fit <- glm(cdiff ~ factor(DISCHARGE_MONTH), data = cdiff_binary_mont
 summary(cdiff.month.fit)
 ```
 
+```{r}
+# evaluate the logistic regression model
+cdiff_binary_month_factor <- cdiff_binary_month |>
+  mutate(DISCHARGE_MONTH = as.factor(DISCHARGE_MONTH))
+
+cdiff_binary_month_factor <- 
+  cdiff_binary_month_factor |>
+  mutate(cdiff = as.factor(cdiff))
+
+# fit model 
+lr_cls_fit_cdiff_month <- 
+  lr_cls_spec |>
+  fit(cdiff ~ DISCHARGE_MONTH, data = cdiff_binary_month_factor)
+
+lr_cls_fit_cdiff_month
+
+# model predictive ability
+lr_training_pred_cdiff_month <- bind_cols(
+  truth = cdiff_binary_month_factor$cdiff,
+  predict(lr_cls_fit_cdiff_month, cdiff_binary_month_factor),
+  predict(lr_cls_fit_cdiff_month, cdiff_binary_month_factor, type = "prob")
+)
+lr_training_pred_cdiff_month
+
+autoplot(roc_curve(lr_training_pred_cdiff_month, 
+                   truth, 
+                   .pred_0))
+
+roc_auc(lr_training_pred_cdiff_month, 
+        truth, 
+        .pred_0)
+```
+
 -   Only January and August was negatively associated with *C. difficile* infection indicating that there is no seasonality in cases.
+-   Model performed poorly in predicting C. difficile infection by discharge month.
 
 ```{r}
 # determine whether discharge month is associated with Enterococcus infection 
@@ -589,7 +710,41 @@ entero.month.fit <- glm(entero ~ factor(DISCHARGE_MONTH), data = entero_binary_m
 summary(entero.month.fit)
 ```
 
+```{r}
+# evaluate the logistic regression model
+entero_binary_month_factor <- entero_binary_month |>
+  mutate(DISCHARGE_MONTH = as.factor(DISCHARGE_MONTH))
+
+entero_binary_month_factor <- 
+  entero_binary_month_factor |>
+  mutate(entero = as.factor(entero))
+
+# fit model 
+lr_cls_fit_entero_month <- 
+  lr_cls_spec |>
+  fit(entero ~ DISCHARGE_MONTH, data = entero_binary_month_factor)
+
+lr_cls_fit_entero_month
+
+# model predictive ability
+lr_training_pred_entero_month <- bind_cols(
+  truth = entero_binary_month_factor$entero,
+  predict(lr_cls_fit_entero_month, entero_binary_month_factor),
+  predict(lr_cls_fit_entero_month, entero_binary_month_factor, type = "prob")
+)
+lr_training_pred_entero_month
+
+autoplot(roc_curve(lr_training_pred_entero_month, 
+                   truth, 
+                   .pred_0))
+
+roc_auc(lr_training_pred_entero_month, 
+        truth, 
+        .pred_0)
+```
+
 -   Similar to C. difficle, Enterococcus infection was only negatively associated with January and August indicating no seasonality.
+-   The logistic regression model performed poorly in predicting Enterococcus infection by discharge month.
 
 Bacterial pneumonia follows a similar seasonality as COVID-19 as expected, but C. difficile and Enterococcus infections appears to be pretty consistent throughout the year.
 
@@ -597,38 +752,46 @@ Next, I looked at the age distribution of each infection.
 
 ```{r}
 #plot age data together 
-covid_age <- ggplot(covid_patients, aes(x = age.simplified)) +
+covid_age <- ggplot(covid_patients, aes(x = age.simplified, fill = age.simplified)) +
   geom_bar() +
+  scale_fill_brewer(palette = "Set3") +
   labs(x = "Age", y = "Count") +
   theme_bw() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "none")
 
 #adjust margins for cowplot
 covid_age <- covid_age + theme(plot.margin = margin(t = 20, r = 10, b = 10, l = 10))
 
-bactpneumo_age <- ggplot(bactpneumo_patients, aes(x = age.simplified)) +
+bactpneumo_age <- ggplot(bactpneumo_patients, aes(x = age.simplified, fill = age.simplified)) +
   geom_bar() +
+  scale_fill_brewer(palette = "Set3") +
   labs(x = "Age", y = "Count") +
   theme_bw() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "none")
 
 #adjust margins for cowplot
 bactpneumo_age <- bactpneumo_age + theme(plot.margin = margin(t = 20, r = 10, b = 10, l = 10))
 
-cdiff_age <- ggplot(Cdiff_patients, aes(x = age.simplified)) +
+cdiff_age <- ggplot(Cdiff_patients, aes(x = age.simplified, fill = age.simplified)) +
   geom_bar() +
+  scale_fill_brewer(palette = "Set3") +
   labs(x = "Age", y = "Count") +
   theme_bw() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "none")
 
 #adjust margins for cowplot
 cdiff_age <- cdiff_age + theme(plot.margin = margin(t = 20, r = 10, b = 10, l = 10))
 
-entero_age <- ggplot(entero_patients, aes(x = age.simplified)) +
+entero_age <- ggplot(entero_patients, aes(x = age.simplified, fill = age.simplified)) +
   geom_bar() +
+  scale_fill_brewer(palette = "Set3") +
   labs(x = "Age", y = "Count") +
   theme_bw() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "none")
 
 entero_age <- entero_age + theme(plot.margin = margin(t = 20, r = 10, b = 10, l = 10))
 
@@ -688,7 +851,144 @@ entero.age.fit <- glm(entero ~ AGE, data = entero_binary_age, family = binomial)
 summary(entero.age.fit)
 ```
 
+```{r}
+# evaluate predictive performance of logistic regression for covid
+
+covid_binary_age_factor <- covid_binary_age |>
+  mutate(AGE = as.factor(AGE))
+
+covid_binary_age_factor <- 
+  covid_binary_age_factor |>
+  mutate(COVID = as.factor(COVID))
+
+# fit model 
+lr_cls_fit_covid_age <- 
+  lr_cls_spec |>
+  fit(COVID ~ AGE, data = covid_binary_age_factor)
+
+lr_cls_fit_covid_age
+
+# model predictive ability
+lr_training_pred_covid_age <- bind_cols(
+  truth = covid_binary_age_factor$COVID,
+  predict(lr_cls_fit_covid_age, covid_binary_age_factor),
+  predict(lr_cls_fit_covid_age, covid_binary_age_factor, type = "prob")
+)
+lr_training_pred_covid_age
+
+autoplot(roc_curve(lr_training_pred_covid_age, 
+                   truth, 
+                   .pred_0))
+
+roc_auc(lr_training_pred_covid_age, 
+        truth, 
+        .pred_0)
+```
+
+```{r}
+# evaluate predictive performance of logistic regression for bacterial pneumonia
+
+bactpneumo_binary_age_factor <- bactpneumo_binary_age |>
+  mutate(AGE = as.factor(AGE))
+
+bactpneumo_binary_age_factor <- 
+  bactpneumo_binary_age_factor |>
+  mutate(bactpneumo = as.factor(bactpneumo))
+
+# fit model 
+lr_cls_fit_bactpneumo_age <- 
+  lr_cls_spec |>
+  fit(bactpneumo ~ AGE, data = bactpneumo_binary_age_factor)
+
+lr_cls_fit_bactpneumo_age
+
+# model predictive ability
+lr_training_pred_bactpneumo_age <- bind_cols(
+  truth = bactpneumo_binary_age_factor$bactpneumo,
+  predict(lr_cls_fit_bactpneumo_age, bactpneumo_binary_age_factor),
+  predict(lr_cls_fit_bactpneumo_age, bactpneumo_binary_age_factor, type = "prob")
+)
+lr_training_pred_bactpneumo_age
+
+autoplot(roc_curve(lr_training_pred_bactpneumo_age, 
+                   truth, 
+                   .pred_0))
+
+roc_auc(lr_training_pred_bactpneumo_age, 
+        truth, 
+        .pred_0)
+```
+
+```{r}
+# evaluate predictive performance of logistic regression for C. difficile
+
+cdiff_binary_age_factor <- cdiff_binary_age |>
+  mutate(AGE = as.factor(AGE))
+
+cdiff_binary_age_factor <- 
+  cdiff_binary_age_factor |>
+  mutate(cdiff = as.factor(cdiff))
+
+# fit model 
+lr_cls_fit_cdiff_age <- 
+  lr_cls_spec |>
+  fit(cdiff ~ AGE, data = cdiff_binary_age_factor)
+
+lr_cls_fit_cdiff_age
+
+# model predictive ability
+lr_training_pred_cdiff_age <- bind_cols(
+  truth = cdiff_binary_age_factor$cdiff,
+  predict(lr_cls_fit_cdiff_age, cdiff_binary_age_factor),
+  predict(lr_cls_fit_cdiff_age, cdiff_binary_age_factor, type = "prob")
+)
+lr_training_pred_cdiff_age
+
+autoplot(roc_curve(lr_training_pred_cdiff_age, 
+                   truth, 
+                   .pred_0))
+
+roc_auc(lr_training_pred_cdiff_age, 
+        truth, 
+        .pred_0)
+```
+
+```{r}
+# evaluate predictive performance of logistic regression for Enterococcus
+
+entero_binary_age_factor <- entero_binary_age |>
+  mutate(AGE = as.factor(AGE))
+
+entero_binary_age_factor <- 
+  entero_binary_age_factor |>
+  mutate(entero = as.factor(entero))
+
+# fit model 
+lr_cls_fit_entero_age <- 
+  lr_cls_spec |>
+  fit(entero ~ AGE, data = entero_binary_age_factor)
+
+lr_cls_fit_entero_age
+
+# model predictive ability
+lr_training_pred_entero_age <- bind_cols(
+  truth = entero_binary_age_factor$entero,
+  predict(lr_cls_fit_entero_age, entero_binary_age_factor),
+  predict(lr_cls_fit_entero_age, entero_binary_age_factor, type = "prob")
+)
+lr_training_pred_entero_age
+
+autoplot(roc_curve(lr_training_pred_entero_age, 
+                   truth, 
+                   .pred_0))
+
+roc_auc(lr_training_pred_entero_age, 
+        truth, 
+        .pred_0)
+```
+
 -   All 4 infections predominantly affects older individuals (highest 60-69).
+-   Despite this, the predictive performance of the logistic model was poor and performed only slightly better than random chance.
 
 ```{r}
 # proportions by discharge month and age
@@ -731,12 +1031,14 @@ ggplot(entero_patients, aes(x = DISCHARGE_MONTH, fill = age.simplified)) +
 bactpneumo_under10 <- bactpneumo_patients |>
   filter(AGE < 10)
 
-bactpneumo_under10_plot <- ggplot(bactpneumo_under10, aes(x = DISCHARGE_MONTH)) +
+bactpneumo_under10_plot <- ggplot(bactpneumo_under10, aes(x = DISCHARGE_MONTH, fill = factor(DISCHARGE_MONTH))) +
   geom_bar() +
+  scale_fill_brewer(palette = "Set3") +
   scale_x_continuous(breaks = 1:12) +
   xlab("Discharge Month") +
   ggtitle("Bacterial pneumonia cases under 10 years old") +
-  theme_bw()
+  theme_bw() +
+  theme(legend.position = "none")
 
 bactpneumo_under10_plot
 
@@ -760,29 +1062,37 @@ I next looked at the sex distribution of infection.
 ```{r}
 # plot infection by sex together
 
-covid_sex <- ggplot(covid_patients, aes(x = SEX)) +
+covid_sex <- ggplot(covid_patients, aes(x = SEX, fill = SEX)) +
   geom_bar() +
+  scale_fill_manual(values = c("Male" = "blue", "Female" = "red")) +
   labs(x = "Sex", y = "Count") +
   ggtitle("COVID-19") +
-  theme_bw()
+  theme_bw() +
+  theme(legend.position = "none")
 
-bactpneumo_sex <- ggplot(bactpneumo_patients, aes(x = SEX)) +
+bactpneumo_sex <- ggplot(bactpneumo_patients, aes(x = SEX, fill = SEX)) +
   geom_bar() +
+  scale_fill_manual(values = c("Male" = "blue", "Female" = "red")) +
   labs(x = "Sex", y = "Count") +
   ggtitle("Bacterial penumonia") +
-  theme_bw()
+  theme_bw() +
+  theme(legend.position = "none")
 
-cdiff_sex <- ggplot(Cdiff_patients, aes(x = SEX)) +
+cdiff_sex <- ggplot(Cdiff_patients, aes(x = SEX, fill = SEX)) +
   geom_bar() +
+  scale_fill_manual(values = c("Male" = "blue", "Female" = "red")) +
   labs(x = "Sex", y = "Count") +
   ggtitle("C. difficile") +
-  theme_bw()
+  theme_bw() +
+  theme(legend.position = "none")
 
-entero_sex <- ggplot(entero_patients, aes(x = SEX)) +
+entero_sex <- ggplot(entero_patients, aes(x = SEX, fill = SEX)) +
   geom_bar() +
+  scale_fill_manual(values = c("Male" = "blue", "Female" = "red")) +
   labs(x = "Sex", y = "Count") +
   ggtitle("Enterococcus") +
-  theme_bw()
+  theme_bw() +
+  theme(legend.position = "none")
 
 
 plot_grid(covid_sex, bactpneumo_sex, cdiff_sex, entero_sex, label_size = 12, label_x = -0.05, label_y = 1)
@@ -913,7 +1223,40 @@ covid.bactpneumo.age.fit <- glm(bactpneumo ~ AGE + COVID, data = alldiag_bactpne
 summary(covid.bactpneumo.age.fit)
 ```
 
+```{r}
+# evaluate the predictive ability
+
+# set engine
+lr_cls_spec <- 
+  logistic_reg() |> 
+  set_engine("glm", family = binomial)
+
+# fit model 
+lr_cls_fit_bactpneumo_covid <- 
+  lr_cls_spec |>
+  fit(bactpneumo ~ COVID, data = alldiag_bactpneumo_factor)
+
+lr_cls_fit_bactpneumo_covid
+
+# model predictive ability
+lr_training_pred_bactpneumo_covid <- bind_cols(
+  truth = alldiag_bactpneumo_factor$bactpneumo,
+  predict(lr_cls_fit_bactpneumo_covid, alldiag_bactpneumo_factor),
+  predict(lr_cls_fit_bactpneumo_covid, alldiag_bactpneumo_factor, type = "prob")
+)
+lr_training_pred_bactpneumo_covid
+
+autoplot(roc_curve(lr_training_pred_bactpneumo_covid, 
+                   truth, 
+                   .pred_Negative))
+
+roc_auc(lr_training_pred_bactpneumo_covid, 
+        truth, 
+        .pred_Negative)
+```
+
 -   A positive coefficient (1.69) and a p-value less than 0.001 indicates that there is a very strong positive association between bacterial pneumonia and COVID diagnosis, regardless of sex or age.
+-   However, the predictive ability of the logistic regression is poor.
 
 ```{r}
 # determine whether COVID is associated with C. difficile colitis
@@ -983,9 +1326,6 @@ summary(covid.entero.sex.fit)
 ```
 
 -   There is no association between Enterococus infection and COVID-19 diagnosis.
-
-<!-- -->
-
 -   Age is positively associated with COVID-19 diagnosis.
 
 [**Emergency department data set**]{.underline}
@@ -1026,6 +1366,8 @@ var_2020_ed_select |>
 # the code doesn't match exactly, for e.g. R078 has R0781, R0782, R0789 so can't accurately add descriptions. Left as is. The highest counts are chest pain, COVID-19, respiratory infection, joint pain, abdominal pain. 
 ```
 
+I next determined the proportion of emergency department cases that was "routine to home", i.e. did not stay more than 1 day.
+
 ```{r}
 var_2020_ed_select |>
   group_by(DISCHARGE_STATUS) |>
@@ -1048,6 +1390,8 @@ prop_ed_routine
 
 -   81% routine to home from emergency department.
 
+I next determined the total number of COVID-19 and C. difficile infections in the emergency room data set.
+
 ```{r}
 #combine all diagnosis
 alldiag_2020_ed <- var_2020_ed_select |>
@@ -1068,6 +1412,8 @@ allCdiff_ed
 -   10,140 total COVID-19 diagnosis in emergency department.
 
 -   492 total C.diff infections in emergency department.
+
+I then subsetted the data by diagnosis and created visuals for each hospital aquired infection similar to inpatient data.
 
 ```{r}
 # Add descriptions to diagnosis (emergency room)
@@ -1324,40 +1670,50 @@ surginf_patients_ed <- filter(alldiag_2020_ed, DX %in% c("T8141XA", "T8141XD", "
 # no cases in dataset
 ```
 
+I plotted each hospital acquired infection by month to visualize seasonality.
+
 ```{r}
 #plot month data together 
-covid_month_ed <- ggplot(covid_patients_ed, aes(x = DISCHARGE_MONTH)) +
+covid_month_ed <- ggplot(covid_patients_ed, aes(x = DISCHARGE_MONTH, fill = factor(DISCHARGE_MONTH))) +
   geom_bar() +
+  scale_fill_brewer(palette = "Set3") +
   scale_x_continuous(breaks = 1:12) +
   labs(x = "Month", y = "Count") +
-  theme_bw()
+  theme_bw() +
+  theme(legend.position = "none")
 
 #adjust margins for cowplot
 covid_month_ed <- covid_month_ed + theme(plot.margin = margin(t = 20, r = 10, b = 10, l = 10))
 
-bactpneumo_month_ed <- ggplot(bactpneumo_patients_ed, aes(x = DISCHARGE_MONTH)) +
+bactpneumo_month_ed <- ggplot(bactpneumo_patients_ed, aes(x = DISCHARGE_MONTH, fill = factor(DISCHARGE_MONTH))) +
   geom_bar() +
+  scale_fill_brewer(palette = "Set3") +
   scale_x_continuous(breaks = 1:12) +
   labs(x = "Month", y = "Count") +
-  theme_bw()
+  theme_bw() +
+  theme(legend.position = "none")
 
 #adjust margins for cowplot
 bactpneumo_month_ed <- bactpneumo_month_ed + theme(plot.margin = margin(t = 20, r = 10, b = 10, l = 10))
 
-cdiff_month_ed <- ggplot(Cdiff_patients_ed, aes(x = DISCHARGE_MONTH)) +
+cdiff_month_ed <- ggplot(Cdiff_patients_ed, aes(x = DISCHARGE_MONTH, fill = factor(DISCHARGE_MONTH))) +
   geom_bar() +
+  scale_fill_brewer(palette = "Set3") +
   scale_x_continuous(breaks = 1:12) +
   labs(x = "Month", y = "Count") +
-  theme_bw()
+  theme_bw() +
+  theme(legend.position = "none")
 
 #adjust margins for cowplot
 cdiff_month_ed <- cdiff_month_ed + theme(plot.margin = margin(t = 20, r = 10, b = 10, l = 10))
 
-entero_month_ed <- ggplot(entero_patients_ed, aes(x = DISCHARGE_MONTH)) +
+entero_month_ed <- ggplot(entero_patients_ed, aes(x = DISCHARGE_MONTH, fill = factor(DISCHARGE_MONTH))) +
   geom_bar() +
+  scale_fill_brewer(palette = "Set3") +
   scale_x_continuous(breaks = 1:12) +
   labs(x = "Month", y = "Count") +
-  theme_bw()
+  theme_bw() +
+  theme(legend.position = "none")
 
 entero_month_ed <- entero_month_ed + theme(plot.margin = margin(t = 20, r = 10, b = 10, l = 10))
 
@@ -1418,12 +1774,14 @@ plot_grid(covid_sex, bactpneumo_sex, cdiff_sex, entero_sex, label_size = 12, lab
 As expected, there was a correlation between discharge month (which I used as a proxy for diagnosis month since that wasn't available) and COVID-19 diagnosis. Relative to April, COVID-19 was negatively associated with the later months. It also appears that there is a seasonality to COVID-19 cases, where cases dropped in the summer months and surged in the winter.
 
 ```{r}
-ggplot(covid_patients, aes(x = DISCHARGE_MONTH)) +
+ggplot(covid_patients, aes(x = DISCHARGE_MONTH, fill = factor(DISCHARGE_MONTH))) +
   geom_bar() +
+  scale_fill_manual(values = colors_set3) +
   scale_x_continuous(breaks = 1:12) +
   labs(x = "Month", y = "Count") +
   ggtitle("COVID-19 cases by discharge month") +
-  theme_bw()
+  theme_bw() +
+  theme(legend.position = "none")
 ```
 
 ```{r}
@@ -1433,12 +1791,14 @@ summary(covid.month.fit)
 Bacterial pneumonia had a similar seasonality as COVID-19, dropping from June to October and surging in the colder months. Analysis of the association of COVID-19 infection and bacterial pneumonia diagnosis reveals a significant positive association, indicating that COVID-19 infection increases the risk of bacterial pneumonia. Secondary bacterial infection is a important contributor to mortality following viral infection, including COVID-19 (Morens et al. 2008, Gao et al. 2023). Interestingly, the incidence of bacterial pneumonia by age changed throughout 2020, where children under the age of 10 that made up nearly 20% of cases in January significantly decreased, likely due to changes in exposure from the COVID-19 pandemic.
 
 ```{r}
-ggplot(bactpneumo_patients, aes(x = DISCHARGE_MONTH)) +
+ggplot(bactpneumo_patients, aes(x = DISCHARGE_MONTH, fill = factor(DISCHARGE_MONTH))) +
   geom_bar() +
+  scale_fill_brewer(palette = "Set3") +
   scale_x_continuous(breaks = 1:12) +
   labs(x = "Month", y = "Count") +
-    ggtitle("Bacterial penumonia cases by discharge month") +
-  theme_bw()
+  ggtitle("Bacterial penumonia cases by discharge month") +
+  theme_bw() +
+  theme(legend.position = "none")
 ```
 
 ```{r}
@@ -1473,12 +1833,14 @@ bactpneumo_under10_plot
 I next performed a similar analysis for two bacterial pathogens commonly associated with hospital-associated infections outside the lungs. There was no clear seasonality with *C. difficile* infection; cases remained relatively stable throughout the year. Additionally, COVID-19 infection was not associated with *C. difficile* infection. A study that performed a single-center comparison in hospital-associated *C. difficile* infection between 2019 (pre-pandemic) and 2020 (pandemic) also found the incidence remained unchanged; however, their study found that the incidence of hospital-associated *C. difficile* infection was higher in patients with COVID-19 than in non-COVID-19 cases which they attributed to longer hospital stay and increased use of broad-spectrum antibiotics (Vazquez-Cuesta et al. 2022). The discrepancies between their study and my analysis may be reflective of the limitations of a single-center analysis. Several studies reported a lower *C. difficile* infection rate compared to pre-pandemic period (Granata et al. 2022).
 
 ```{r}
-ggplot(Cdiff_patients, aes(x = DISCHARGE_MONTH)) +
+ggplot(Cdiff_patients, aes(x = DISCHARGE_MONTH, fill = factor(DISCHARGE_MONTH))) +
   geom_bar() +
+  scale_fill_brewer(palette = "Set3") +
   scale_x_continuous(breaks = 1:12) +
   labs(x = "Month", y = "Count") +
   ggtitle("C. difficile infection by discharge month") +
-  theme_bw()
+  theme_bw() +
+  theme(legend.position = "none")
 
 summary(cdiff.month.fit)
 
@@ -1497,12 +1859,14 @@ summary(covid.cdiff.fit)
 Similarly, the incidence of *Enterococcus* infection did not have a clear seasonality and there was a lack of association between COVID-19 diagnosis and *Enterococcus* co-infection.
 
 ```{r}
-ggplot(entero_patients, aes(x = DISCHARGE_MONTH)) +
+ggplot(entero_patients, aes(x = DISCHARGE_MONTH, fill = factor(DISCHARGE_MONTH))) +
   geom_bar() +
+  scale_fill_brewer(palette = "Set3") +
   scale_x_continuous(breaks = 1:12) +
   labs(x = "Month", y = "Count") +
   ggtitle("Enterococcus infections by discharge month") +
-  theme_bw()
+  theme_bw() +
+  theme(legend.position = "none")
 
 summary(entero.month.fit)
 
